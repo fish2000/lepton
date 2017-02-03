@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import sys
 from collections import defaultdict
@@ -7,9 +8,9 @@ def load_histogram(fn):
     with open(fn) as f:
         for line in f:
             try:
-                cat,a,b = line.split()
+                cat, a, b = line.split()
             except:
-                cat,b = line.split()
+                cat, b = line.split()
                 a = 1
             if not int(b) in ret[cat]:
                 ret[cat][int(b)] = int(a)
@@ -138,7 +139,7 @@ def eval_binary_cost(h):
             max = i
         count += h[i]
     bin_cost = log2_length(max)
-    # print "max was ", max, "count was ", count, "cost was ",bin_cost,"per item"
+    # print("max was ", max, "count was ", count, "cost was ",bin_cost,"per item")
     return count * bin_cost
 
 def eval_cost(h, c, dolog=False):
@@ -148,23 +149,27 @@ def eval_cost(h, c, dolog=False):
         if dolog:
             cost_index = log2_length(i)
         if i < 0 and cost_index > 0 and (-cost_index) in c:
-            cost = c[-cost_index] #lets us special case -log2_length
+            cost = c[-cost_index] # lets us special case -log2_length
         else:
             cost = c[cost_index]
         ret += h[i] * cost
     return ret
 
 if __name__ == '__main__':
+    
     for arg in sys.argv[1:]:
         hists = load_histogram(arg)
         total_count = 0
+        
         for name, count in hists.iteritems():
-            print arg + '.' + name, 'pure_bin_cost', eval_binary_cost(count)
-            print arg + '.' + name, 'unary_exp_cost', eval_cost(count, unary_exponent_cost, dolog=True)
-            print arg + '.' + name, 'unary0exp_cost', eval_cost(count, unary_one_case_exponent_cost, dolog=True)
-            print arg + '.' + name, 'binaryexp_cost', eval_cost(count, binary_cost, dolog=True)
-            print arg + '.' + name, 'unary_cost', eval_cost(count, unary_cost)
+            print(arg + '.' + name, 'pure_bin_cost',    eval_binary_cost(count))
+            print(arg + '.' + name, 'unary_exp_cost',   eval_cost(count, unary_exponent_cost, dolog=True))
+            print(arg + '.' + name, 'unary0exp_cost',   eval_cost(count, unary_one_case_exponent_cost, dolog=True))
+            print(arg + '.' + name, 'binaryexp_cost',   eval_cost(count, binary_cost, dolog=True))
+            print(arg + '.' + name, 'unary_cost',       eval_cost(count, unary_cost))
+            
             for i in xrange(len(unary_trunc_cost)):
                 # print i, unary_trunc_cost
-                print arg + '.' + name, 'untrunc' + str(i // 10) + str(i % 10), eval_cost(count, unary_trunc_cost[i])
+                print(arg + '.' + name, 'untrunc' + str(i // 10) + str(i % 10),
+                                                        eval_cost(count, unary_trunc_cost[i]))
 

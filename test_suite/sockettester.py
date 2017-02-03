@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import subprocess
 import sys
 import threading
@@ -8,6 +10,7 @@ import os
 import uuid
 import argparse
 import zlib
+
 base_dir = os.path.dirname(sys.argv[0])
 parser = argparse.ArgumentParser(description='Benchmark and test socket server for compression')
 parser.add_argument('files', metavar='N', type=str, nargs='*', default=[os.path.join(base_dir,
@@ -86,11 +89,11 @@ def test_compression(binary_name, socket_name = None, too_short_time_bound=False
         lepton_socket.close()
         t.join()
 
-        print ('encode time ',encode_end - encode_start)
-        print (len(jpg),len(dat))
+        print('encode time ', encode_end - encode_start)
+        print(len(jpg), len(dat))
 
         while True:
-            v=threading.Thread(target=decoder)
+            v = threading.Thread(target=decoder)
 
             decode_start = time.time()
             lepton_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -104,14 +107,14 @@ def test_compression(binary_name, socket_name = None, too_short_time_bound=False
             v.join()
             if is_zlib:
                 ojpg = zlib.decompress(ojpg)
-            print (len(ojpg))
-            print (len(jpg))
+            print(len(ojpg))
+            print(len(jpg))
             assert (ojpg == jpg)
-            print ('decode time ',decode_end - decode_start, '(', decode_mid-decode_start,')')
+            print('decode time ', decode_end - decode_start, '(', decode_mid-decode_start, ')')
             if not parsed_args.benchmark:
                 break
 
-        print ('yay',len(ojpg),len(dat),len(dat)/float(len(ojpg)), 'parent pid is ',proc.pid)
+        print('yay', len(ojpg), len(dat), len(dat) / float(len(ojpg)), 'parent pid is ', proc.pid)
 
     finally:
         proc.terminate()
@@ -144,4 +147,4 @@ if not parsed_args.benchmark:
         ok = True
     finally:
         assert (ok and "the time bound must stop the process")
-    print ("SUCCESS DONE")
+    print("SUCCESS DONE")
