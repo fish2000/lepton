@@ -1,4 +1,5 @@
 /* -*-mode:c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+
 #include <time.h>
 #include <stdio.h>
 #include <iostream>
@@ -9,15 +10,14 @@
 #include "lepton_codec.hh"
 #include "../io/BoundedMemWriter.hh"
 #include "../vp8/util/memory.hh"
+
 #define ENVLI(s,v)        ( ( v > 0 ) ? v : ( v - 1 ) + ( 1 << s ) )
 
-int next_mcuposn(int* cmp, int* dpos, int* rstw );
+int next_mcuposn(int* cmp, int* dpos, int* rstw);
+
 extern BaseDecoder *g_decoder;
 extern UncompressedComponents colldata; // baseline sorted DCT coefficients
-
 extern char padbit;
-
-
 extern Sirikata::Array1d<int, 4> cs_cmp; // component numbers  in current scan
 extern Sirikata::Array1d<componentInfo, 4> cmpnfo;
 
@@ -42,17 +42,19 @@ extern unsigned char *prefix_grbgdata; // the actual prefix garbage: if present,
 
 void check_decompression_memory_bound_ok();
 
-bool parse_jfif_jpg( unsigned char type, unsigned int len, unsigned char* segment );
+bool parse_jfif_jpg( unsigned char type, unsigned int len, unsigned char* segment);
+
 #define B_SHORT(v1,v2)    ( ( ((int) v1) << 8 ) + ((int) v2) )
 
-int find_aligned_end_64_scalar(const int16_t *block) {
+int find_aligned_end_64_scalar(const int16_t* block) {
     int end = 63;
     while (end && !block[end]) {
         --end;
     }
     return end;
 }
-int find_aligned_end_64_sse41(const int16_t *block) {
+
+int find_aligned_end_64_sse41(const int16_t* block) {
     unsigned int mask = 0;
     int iter;
     for (iter = 56; iter >= 0; iter -=8) {
@@ -73,8 +75,9 @@ int find_aligned_end_64_sse41(const int16_t *block) {
     assert(retval == find_aligned_end_64_scalar(block));
     return retval;
 }
+
 #ifdef __AVX2__
-int find_aligned_end_64(const int16_t *block) {
+int find_aligned_end_64(const int16_t* block) {
     uint32_t mask = 0;
     int iter;
     for (iter = 48; iter >= 0; iter -=16) {
@@ -96,7 +99,7 @@ int find_aligned_end_64(const int16_t *block) {
     return retval;
 }
 #else
-int find_aligned_end_64(const int16_t *block) {
+int find_aligned_end_64(const int16_t* block) {
     return find_aligned_end_64_sse41(block);
 }
 #endif
@@ -108,10 +111,10 @@ static bool aligned_memchr16ff(const unsigned char *local_huff_data) {
     __m128i res = _mm_cmpeq_epi8(buf, ff);
     uint32_t movmask = _mm_movemask_epi8(res);
     bool retval = movmask != 0x0;
-    assert (retval == (memchr(local_huff_data, 0xff, 16) != NULL));
+    assert (retval == (memchr(local_huff_data, 0xff, 16) != nullptr));
     return retval;
 #endif
-    return memchr(local_huff_data, 0xff, 16) != NULL;
+    return memchr(local_huff_data, 0xff, 16) != nullptr;
 }
 
 
@@ -119,16 +122,19 @@ static bool aligned_memchr16ff(const unsigned char *local_huff_data) {
  * This function takes local byte-aligned huffman data and writes it to the file
  * This function escapes any 0xff bytes found in the huffman data
  */
-template<class OutputWriter>
+
+template <class OutputWriter>
 void escape_0xff_huffman_and_write(OutputWriter* str_out,
-                                   const unsigned char * local_huff_data,
+                                   const unsigned char* local_huff_data,
                                    unsigned int max_byte_coded) {
-    unsigned int progress_ipos = 0;
-    //write a single scan
-    {
+    
+	unsigned int progress_ipos = 0;
+	
+	{
+		// write a single scan
         // write & expand huffman coded image data
         const unsigned char stv = 0x00; // 0xFF stuff value
-        for ( ; progress_ipos & 0xf; progress_ipos++ ) {
+        for (; progress_ipos & 0xf; progress_ipos++) {
             if (__builtin_expect(!(progress_ipos < max_byte_coded), 0)) {
                 break;
             }
@@ -141,13 +147,13 @@ void escape_0xff_huffman_and_write(OutputWriter* str_out,
             }
         }
 
-        while(true) {
+        while (true) {
             if (__builtin_expect(!(progress_ipos + 15 < max_byte_coded), 0)) {
                 break;
             }
             if ( __builtin_expect(aligned_memchr16ff(local_huff_data + progress_ipos), 0)){
                 // insert restart markers if needed
-                for (int veci = 0 ; veci < 16; ++veci, ++progress_ipos ) {
+                for (int veci = 0 ; veci < 16; ++veci, ++progress_ipos) {
                     uint8_t byte_to_write = local_huff_data[progress_ipos];
                     str_out->write_byte(byte_to_write);
                     // check current byte, stuff if needed
@@ -161,7 +167,8 @@ void escape_0xff_huffman_and_write(OutputWriter* str_out,
                 progress_ipos+=16;
             }
         }
-        for ( ; ; progress_ipos++ ) {
+		
+        for (;; progress_ipos++) {
             if (__builtin_expect(!(progress_ipos < max_byte_coded), 0)) {
                 break;
             }
@@ -173,19 +180,20 @@ void escape_0xff_huffman_and_write(OutputWriter* str_out,
                 str_out->write_byte(stv);
             }
         }
+		
     }
 }
 
 /* -----------------------------------------------
     calculates next position for MCU
     ----------------------------------------------- */
-int next_mcupos( int* mcu, int* cmp, int* csc, int* sub, int* dpos, int* rstw, int cs_cmpc)
-{
+int next_mcupos(int* mcu, int* cmp, int* csc, int* sub, int* dpos, int* rstw, int cs_cmpc) {
     int sta = 0; // status
     unsigned int local_mcuh = mcuh;
     unsigned int local_mcu = *mcu;
     unsigned int local_cmp = *cmp;
     unsigned int local_sub;
+	
     // increment all counts where needed
     if ( (local_sub = ++(*sub) ) >= (unsigned int)cmpnfo[local_cmp].mbs) {
         local_sub = (*sub) = 0;
@@ -206,10 +214,13 @@ int next_mcupos( int* mcu, int* cmp, int* csc, int* sub, int* dpos, int* rstw, i
             local_cmp = (*cmp) = cs_cmp[(*csc)];
         }
     }
-    unsigned int sfh = cmpnfo[local_cmp].sfh;
+    
+	unsigned int sfh = cmpnfo[local_cmp].sfh;
     unsigned int sfv = cmpnfo[local_cmp].sfv;
+	
     // get correct position in image ( x & y )
-    if ( sfh > 1 ) { // to fix mcu order
+    if (sfh > 1) {
+		// to fix mcu order
         unsigned int mcu_o_mcuh = local_mcu / local_mcuh;
         unsigned int sub_o_sfv = local_sub / sfv;
         unsigned int mcu_mod_mcuh = local_mcu - mcu_o_mcuh * local_mcuh;
@@ -218,12 +229,10 @@ int next_mcupos( int* mcu, int* cmp, int* csc, int* sub, int* dpos, int* rstw, i
         local_dpos *= cmpnfo[local_cmp].bch;
         local_dpos += mcu_mod_mcuh * sfv + sub_mod_sfv;
         *dpos = local_dpos;
-    }
-    else if ( sfv > 1 ) {
+    } else if (sfv > 1) {
         // simple calculation to speed up things if simple fixing is enough
         (*dpos) = local_mcu * cmpnfo[local_cmp].mbs + local_sub;
-    }
-    else {
+    } else {
         // no calculations needed without subsampling
         (*dpos) = (*mcu);
     }
@@ -234,59 +243,60 @@ int next_mcupos( int* mcu, int* cmp, int* csc, int* sub, int* dpos, int* rstw, i
 // -----------------------------------------------
 //    sequential block encoding routine
 // ----------------------------------------------- 
-int encode_block_seq( abitwriter* huffw, huffCodes* dctbl, huffCodes* actbl, short* block )
-{
+int encode_block_seq(abitwriter* huffw, huffCodes* dctbl, huffCodes* actbl, short* block) {
     unsigned short n;
     unsigned char  s;
     int bpos;
     int hc;
     short tmp;
-
-
+	
     // encode DC
-    tmp = block[ 0 ];
+    tmp = block[0];
     s = uint16bit_length(tmp > 0 ? tmp : -tmp);
-    n = ENVLI( s, tmp );
-    huffw->write( dctbl->cval[ s ], dctbl->clen[ s ] );
+    n = ENVLI(s, tmp);
+    huffw->write(dctbl->cval[s], dctbl->clen[s]);
     write_multi_bit_bill(dctbl->clen[s], false, Billing::EXP0_DC, Billing::EXPN_DC);
-    huffw->write( n, s );
+    huffw->write(n, s);
+	
     if (s) {
         write_bit_bill(Billing::RES_DC, false, s - 1);
         write_bit_bill(Billing::SIGN_DC, false, 1);
     }
 
     signed z = -1;
+	
     // encode AC
     z = 0;
     int end = find_aligned_end_64(block);
-    for ( bpos = 1; bpos <= end; bpos++ )
-    {
+    for (bpos = 1; bpos <= end; bpos++) {
         // if nonzero is encountered
         tmp = block[bpos];
         if (tmp == 0) {
             ++z;
             continue;
         }
+		
         // vli encode
         s = nonzero_bit_length(tmp > 0 ? tmp : -tmp);
         n = ENVLI(s, tmp);
-        hc = ( ( (z & 0xf) << 4 ) + s );
+        hc = (((z & 0xf) << 4) + s);
         if (__builtin_expect(z & 0xf0, 0)) {
             // write remaining zeroes
             do {
-                huffw->write( actbl->cval[ 0xF0 ], actbl->clen[ 0xF0 ] );
+                huffw->write(actbl->cval[0xF0], actbl->clen[0xF0]);
                 write_multi_bit_bill(actbl->clen[0xF0], false,
                                      is_edge(bpos) ? Billing::BITMAP_EDGE : Billing::BITMAP_7x7, // this is pure bitmap
                                      is_edge(bpos) ? Billing::BITMAP_EDGE : Billing::BITMAP_7x7);
                 z -= 16;
-            } while ( z & 0xf0 );
+            } while (z & 0xf0);
         }
+		
         // write to huffman writer
-        huffw->write( actbl->cval[ hc ], actbl->clen[ hc ] );
+        huffw->write(actbl->cval[hc], actbl->clen[hc]);
         write_multi_bit_bill(actbl->clen[hc], false,
                              is_edge(bpos) ? Billing::BITMAP_EDGE : Billing::BITMAP_7x7, // this is pure bitmap
                              is_edge(bpos) ? Billing::EXPN_EDGE : Billing::EXPN_7x7);
-        huffw->write( n, s );
+        huffw->write(n, s);
         if (s) {
             write_bit_bill(is_edge(bpos) ? Billing::RES_EDGE : Billing::RES_7x7, false, s - 1);
             write_bit_bill(is_edge(bpos) ? Billing::SIGN_EDGE : Billing::SIGN_7x7, false, 1);
@@ -295,72 +305,79 @@ int encode_block_seq( abitwriter* huffw, huffCodes* dctbl, huffCodes* actbl, sho
         // reset zeroes
         z = 0;
     }
+	
     // write eob if needed
-    if ( end != 63 ) {
-        huffw->write( actbl->cval[ 0x00 ], actbl->clen[ 0x00 ] );
-        write_eob_bill(end, false, actbl->clen[ 0x00 ]);
+    if (end != 63) {
+        huffw->write(actbl->cval[0x00], actbl->clen[0x00]);
+        write_eob_bill(end, false, actbl->clen[0x00]);
     }
 
     return end + 1;
 }
 
 template <class OutputWriter>
-bool recode_one_mcu_row(abitwriter *huffw, int mcu,
-                        OutputWriter*str_out,
-                        Sirikata::Array1d<int16_t, (size_t)ColorChannel::NumBlockTypes> &lastdc,
+bool recode_one_mcu_row(abitwriter* huffw, int mcu,
+                        OutputWriter* str_out,
+                        Sirikata::Array1d<int16_t, (std::size_t)ColorChannel::NumBlockTypes>& lastdc,
                         const BlockBasedImagePerChannel<true> framebuffer) {
-    int cmp = cs_cmp[ 0 ];
+    int cmp = cs_cmp[0];
     int csc = 0, sub = 0;
-    int mcumul = cmpnfo[ cmp ].sfv * cmpnfo[ cmp ].sfh;
+    int mcumul = cmpnfo[cmp].sfv * cmpnfo[cmp].sfh;
     int dpos = mcu * mcumul;
     int rstw = rsti ? rsti - mcu % rsti : 0;
     unsigned int cumulative_reset_markers = rstw ? mcu / rsti : 0;
     unsigned char cmpc = 0;
-    for (;cmpc < framebuffer.size() && framebuffer[cmpc] != NULL; ++cmpc) {
-    }
+	
+    for (; cmpc < framebuffer.size() && framebuffer[cmpc] != nullptr; ++cmpc) {}
+	
     Sirikata::Aligned256Array1d<int16_t, 64> block; // store block for coeffs
     bool end_of_row = false;
-    // JPEG imagedata encoding routines
+    
+	// JPEG imagedata encoding routines
     while (!end_of_row) {
 
         // (re)set status
         int sta = 0;
 
         // ---> sequential interleaved encoding <---
-        while ( sta == 0 ) {
+        while (sta == 0) {
             // copy from colldata
             const AlignedBlock &aligned_block = framebuffer[cmp]->raster(dpos);
             //fprintf(stderr, "Reading from cmp(%d) dpos %d\n", cmp, dpos);
-            for ( int bpos = 0; bpos < 64; bpos++ ) {
+            for (int bpos = 0; bpos < 64; bpos++) {
                 block[bpos] = aligned_block.coefficients_zigzag(bpos);
             }
 
             int16_t dc = block[0];
             // diff coding for dc
-            block[ 0 ] -= lastdc[ cmp ];
-            lastdc[ cmp ] = dc;
+            block[0] -= lastdc[cmp];
+            lastdc[cmp] = dc;
 
             // encode block
             int eob = encode_block_seq(huffw,
-                                       &(hcodes[ 0 ][ cmpnfo[cmp].huffdc ]),
-                                       &(hcodes[ 1 ][ cmpnfo[cmp].huffac ]),
-                                       block.begin() );
+                                       &(hcodes[0][cmpnfo[cmp].huffdc]),
+                                       &(hcodes[1][cmpnfo[cmp].huffac]),
+                                       block.begin());
             int old_mcu = mcu;
             // check for errors, proceed if no error encountered
-            if ( eob < 0 ) sta = -1;
-            else if (__builtin_expect(framebuffer.size() == 1 || framebuffer[1] == NULL, 0)) {
-                sta = next_mcuposn(&cmp, &dpos, &rstw );
+            if (eob < 0) {
+				sta = -1;
+			} else if (__builtin_expect(framebuffer.size() == 1 || framebuffer[1] == nullptr, 0)) {
+                sta = next_mcuposn(&cmp, &dpos, &rstw);
                 mcu = dpos / mcumul;
             } else {
-                sta = next_mcupos( &mcu, &cmp, &csc, &sub, &dpos, &rstw, cmpc); // we can pass in cmpc instead of CMPC
+                sta = next_mcupos(&mcu, &cmp, &csc, &sub, &dpos, &rstw, cmpc); // we can pass in cmpc instead of CMPC
             }
+			
             if (sta == 0 && huffw->no_remainder()) {
                 escape_0xff_huffman_and_write(str_out, huffw->peekptr(), huffw->getpos());
                 huffw->reset();
             }
-            if (str_out->has_exceeded_bound()) {
+            
+			if (str_out->has_exceeded_bound()) {
                 sta = 2;
             }
+			
             if (old_mcu != mcu && mcu % mcuh == 0) {
                 end_of_row = true;
                 if (sta == 0) {
@@ -370,23 +387,24 @@ bool recode_one_mcu_row(abitwriter *huffw, int mcu,
         }
 
         // pad huffman writer
-        huffw->pad( padbit );
+        huffw->pad(padbit);
         if (huffw->no_remainder()) {
             escape_0xff_huffman_and_write(str_out, huffw->peekptr(), huffw->getpos());
             huffw->reset();
         }
+		
         // evaluate status
-        if ( sta == -1 ) { // status -1 means error
+        if (sta == -1) {
+			// status -1 means error
             delete huffw;
             return false;
-        }
-        else if ( sta == 2 ) { // status 2 means done
+        } else if (sta == 2) {
+			// status 2 means done
             break; // leave decoding loop, everything is done here
-        }
-        else if ( sta == 1 ) { // status 1 means restart
-            if ( rsti > 0 ) {
+        } else if (sta == 1) { // status 1 means restart
+            if (rsti > 0) {
                 if (rst_cnt.empty() || (!rst_cnt_set) || cumulative_reset_markers < rst_cnt[0]) {
-                    const unsigned char rst = 0xD0 + ( cumulative_reset_markers & 7);
+                    const unsigned char rst = 0xD0 + (cumulative_reset_markers & 7);
                     str_out->write_byte(0xFF);
                     str_out->write_byte(rst);
                     cumulative_reset_markers++;
@@ -403,32 +421,31 @@ bool recode_one_mcu_row(abitwriter *huffw, int mcu,
     return true;
 }
 
-unsigned int handle_initial_segments( bounded_iostream * const str_out )
-{
+unsigned int handle_initial_segments(bounded_iostream* const str_out) {
     unsigned int byte_position = 0;
 
-    while ( true ) {
+    while (true) {
         /* step 1: have we exhausted the headers without reaching the scan? */
-        if ( static_cast<int>( byte_position + 3 ) >= hdrs ) {
+        if (static_cast<int>( byte_position + 3 ) >= hdrs) {
             std::cerr << "overran headers\n";
             return -1;
         }
 
         /* step 2: verify we are at the start of a segment header */
-        if ( hdrdata[ byte_position ] != 0xff ) {
+        if (hdrdata[byte_position] != 0xff) {
             std::cerr << "not start of segment\n";
             return -1;
         }
 
         /* step 3: get info about the segment */
-        const unsigned char type = hdrdata[ byte_position + 1 ];
-        const unsigned int len = 2 + B_SHORT( hdrdata[ byte_position + 2 ],
-                                              hdrdata[ byte_position + 3 ] );
+        const unsigned char type = hdrdata[byte_position + 1];
+        const unsigned int len = 2 + B_SHORT(hdrdata[byte_position + 2],
+                                             hdrdata[byte_position + 3]);
 
         /* step 4: if it's a DHT (0xC4), DRI (0xDD), or SOS (0xDA), parse to mutable globals */
-        if ( type == 0xC4 || type == 0xDD || type == 0xDA ) {
+        if (type == 0xC4 || type == 0xDD || type == 0xDA) {
             /* XXX make sure parse_jfif_jpg can't overrun hdrdata */
-            if ( !parse_jfif_jpg( type, len, hdrdata + byte_position ) ) { return -1; }
+            if (!parse_jfif_jpg( type, len, hdrdata + byte_position)) { return -1; }
         }
 
         /* step 5: we parsed the header -- accumulate byte position */
@@ -437,47 +454,49 @@ unsigned int handle_initial_segments( bounded_iostream * const str_out )
         /* step 6: if it's an SOS (start of scan),
            then return the byte position -- done with initial headers */
 
-        if ( type == 0xDA ) {
+        if (type == 0xDA) {
             if (prefix_grbgdata) {
                 str_out->write(prefix_grbgdata, prefix_grbs);
             } else {
                 {
-                    unsigned char SOI[ 2 ] = { 0xFF, 0xD8 }; // SOI segment
+                    unsigned char SOI[2] = { 0xFF, 0xD8 }; // SOI segment
                     // write SOI
-                    str_out->write( SOI, 2 );
+                    str_out->write(SOI, 2);
                 }
-                str_out->write( hdrdata, byte_position );
+                str_out->write(hdrdata, byte_position);
             }
             return byte_position; /* ready for the scan */
         }
     }
 }
 
-void abitwriter::debug() const
-{
-    using std::cerr;
-
-    cerr << "abitwriter: no_remainder=" << no_remainder() << ", getpos=" << getpos() << ", bits="<<cbit2<<", buf="<<std::hex<<buf<<std::dec<<"\n";
+void abitwriter::debug() const {
+    std::cerr << "abitwriter: no_remainder=" << no_remainder()
+			  << ", getpos=" << getpos()
+			  << ", bits=" << cbit2
+			  << ", buf=" << std::hex
+			  << buf << std::dec << "\n";
 }
 
 //currently returns the overhang byte and num_overhang_bits -- these will be factored out when the encoder serializes them
-template<class BoundedWriter>
-ThreadHandoff recode_row_range(BoundedWriter *stream_out,
-                               BlockBasedImagePerChannel<true> &framebuffer,
+template <class BoundedWriter>
+ThreadHandoff recode_row_range(BoundedWriter* stream_out,
+                               BlockBasedImagePerChannel<true>& framebuffer,
                                int mcuv,
-                               const ThreadHandoff &thread_handoff,
+                               ThreadHandoff const& thread_handoff,
                                Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> max_coded_heights,
                                Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                int physical_thread_id,
                                int logical_thread_id,
-                               abitwriter *huffw) {
-    ThreadHandoff retval = thread_handoff;
-
+                               abitwriter* huffw) {
+    
+	ThreadHandoff retval = thread_handoff;
     huffw->fillbit = padbit;
     huffw->reset_from_overhang_byte_and_num_bits(retval.overhang_byte,
-                                                retval.num_overhang_bits);
+                                                 retval.num_overhang_bits);
     int decode_index = 0;
-    while (true) {
+    
+	while (true) {
         LeptonCodec::RowSpec cur_row = LeptonCodec::row_spec_from_index(decode_index++,
                                                                         framebuffer,
                                                                         mcuv,
@@ -494,23 +513,18 @@ ThreadHandoff recode_row_range(BoundedWriter *stream_out,
                 retval.last_dc[1],
                 retval.last_dc[2]); 
         */
-        if (cur_row.done) {
-            break;
-        }
-        if (cur_row.skip) {
-            continue;
-        }
-        if (cur_row.min_row_luma_y < thread_handoff.luma_y_start) {
-            continue;
-        }
-        if (cur_row.next_row_luma_y > thread_handoff.luma_y_end) {
-            break; // we're done here
-        }
+        if (cur_row.done) { break; }
+        if (cur_row.skip) { continue; }
+        if (cur_row.min_row_luma_y < thread_handoff.luma_y_start) { continue; }
+		// we're done here
+        if (cur_row.next_row_luma_y > thread_handoff.luma_y_end) { break; }
+		
         g_decoder->decode_row(physical_thread_id,
                               framebuffer,
                               component_size_in_blocks,
                               cur_row.component,
                               cur_row.curr_y);
+		
         if (cur_row.last_row_to_complete_mcu) {
             if ( !recode_one_mcu_row(huffw,
                                      cur_row.mcu_row_index * mcuh,
@@ -534,15 +548,14 @@ ThreadHandoff recode_row_range(BoundedWriter *stream_out,
             }
         }
     }
+	
     return retval;
 }
 
 std::pair<int, int> logical_thread_range_from_physical_thread_id(int physical_thread_id, int num_logical_threads) {
     int num_physical_threads = g_threaded ? NUM_THREADS : 1;
-
     int logical_thread_start = (physical_thread_id * num_logical_threads) / num_physical_threads;
-    int logical_thread_end = std::min(((physical_thread_id  + 1) * num_logical_threads) / num_physical_threads,
-                                      num_logical_threads);
+    int logical_thread_end = std::min(((physical_thread_id  + 1) * num_logical_threads) / num_physical_threads, num_logical_threads);
     if (num_logical_threads < num_physical_threads) {
         // this is an optimization so we don't have to call the reset logic as often
         logical_thread_start = std::min(physical_thread_id, num_logical_threads);
@@ -550,24 +563,21 @@ std::pair<int, int> logical_thread_range_from_physical_thread_id(int physical_th
     }
     return std::pair<int, int>(logical_thread_start, logical_thread_end);
 }
-template<class BoundedWriter>
-void recode_physical_thread(BoundedWriter *stream_out,
-                            BlockBasedImagePerChannel<true> &framebuffer,
-                            int mcuv,
-                            const std::vector<ThreadHandoff> &thread_handoffs,
-                            Sirikata::Array1d<uint32_t,
-                                              (uint32_t)ColorChannel::NumBlockTypes> max_coded_heights,
-                            Sirikata::Array1d<uint32_t,
-                                              (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
-                            int physical_thread_id,
-                            abitwriter *huffw) {
-    int num_logical_threads = thread_handoffs.size();
 
+template <class BoundedWriter>
+void recode_physical_thread(BoundedWriter* stream_out,
+                            BlockBasedImagePerChannel<true>& framebuffer,
+                            int mcuv,
+                            std::vector<ThreadHandoff> const& thread_handoffs,
+                            Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> max_coded_heights,
+                            Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
+                            int physical_thread_id,
+                            abitwriter* huffw) {
+    int num_logical_threads = thread_handoffs.size();
     int logical_thread_start, logical_thread_end;
-    std::tie(logical_thread_start, logical_thread_end)
-        = logical_thread_range_from_physical_thread_id(physical_thread_id, num_logical_threads);
+    std::tie(logical_thread_start, logical_thread_end) = logical_thread_range_from_physical_thread_id(physical_thread_id, num_logical_threads);
     ThreadHandoff th = thread_handoffs[logical_thread_start];
-    size_t original_bound = stream_out->get_bound();
+    std::size_t original_bound = stream_out->get_bound();
     bool changed_bounds = false;
     for (int logical_thread_id = logical_thread_start; logical_thread_id < logical_thread_end; ++logical_thread_id) {
         TimingHarness::timing[logical_thread_id % MAX_NUM_THREADS][TimingHarness::TS_ARITH_STARTED] = TimingHarness::get_time_us();
@@ -578,7 +588,7 @@ void recode_physical_thread(BoundedWriter *stream_out,
             ThreadHandoff tmp = thread_handoffs[logical_thread_id];
             tmp.overhang_byte = th.overhang_byte;
             tmp.num_overhang_bits = th.num_overhang_bits;
-            memcpy(tmp.last_dc.begin(), th.last_dc.begin(), sizeof(th.last_dc));
+            std::memcpy(tmp.last_dc.begin(), th.last_dc.begin(), sizeof(th.last_dc));
             th = tmp; // copy the dynamic data in
         } else {
             assert(memcmp(thread_handoffs[logical_thread_id].last_dc.begin(), th.last_dc.begin(), sizeof(th.last_dc)) == 0);
@@ -594,7 +604,7 @@ void recode_physical_thread(BoundedWriter *stream_out,
                 && logical_thread_id != 0;
 
             if (worker_thread_and_many_to_one_mapping || !legacy_truncation_mode) {
-                size_t new_bound = stream_out->bytes_written() + thread_handoffs[logical_thread_id].segment_size;
+                std::size_t new_bound = stream_out->bytes_written() + thread_handoffs[logical_thread_id].segment_size;
                 if (new_bound < original_bound) {
                     stream_out->set_bound(new_bound);
                     changed_bounds = true;
@@ -632,16 +642,15 @@ void recode_physical_thread(BoundedWriter *stream_out,
         stream_out->set_bound(original_bound);
     }
 }
-void recode_physical_thread_wrapper(Sirikata::BoundedMemWriter *stream_out,
-                            BlockBasedImagePerChannel<true> &framebuffer,
-                            int mcuv,
-                            const std::vector<ThreadHandoff> &thread_handoffs,
-                            Sirikata::Array1d<uint32_t,
-                                              (uint32_t)ColorChannel::NumBlockTypes> max_coded_heights,
-                            Sirikata::Array1d<uint32_t,
-                                              (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
-                            int physical_thread_id,
-                            abitwriter * huffw) {
+
+void recode_physical_thread_wrapper(Sirikata::BoundedMemWriter* stream_out,
+									BlockBasedImagePerChannel<true>& framebuffer,
+									int mcuv,
+									std::vector<ThreadHandoff> const& thread_handoffs,
+									Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> max_coded_heights,
+									Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
+                            		int physical_thread_id,
+                            		abitwriter* huffw) {
     recode_physical_thread(stream_out,
                            framebuffer,
                            mcuv,
@@ -651,50 +660,43 @@ void recode_physical_thread_wrapper(Sirikata::BoundedMemWriter *stream_out,
                            physical_thread_id,
                            huffw);
 }
+
 /* -----------------------------------------------
     JPEG encoding routine
     ----------------------------------------------- */
-bool recode_baseline_jpeg(bounded_iostream*str_out,
-                          int max_file_size)
-{    
+bool recode_baseline_jpeg(bounded_iostream* str_out, int max_file_size) {    
 
     unsigned int local_bound = max_file_size - grbs;
     str_out->set_bound(local_bound);
 
     /* step 1: handle the initial segments */
-    unsigned int byte_position = handle_initial_segments( str_out );
-    if ( byte_position == static_cast<unsigned int>( -1 ) ) {
-        return false;
-    }
+    unsigned int byte_position = handle_initial_segments(str_out);
+    if (byte_position == static_cast<unsigned int>(-1)) { return false; }
     /* step 2: setup multithreaded decoder with framebuffer for each */
-    Sirikata::Array1d<uint32_t,
-                      (size_t)ColorChannel::NumBlockTypes> max_coded_heights
-        = colldata.get_max_coded_heights();
-    Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks
-        = colldata.get_component_size_in_blocks();
-    int mcu_count_vertical = colldata.get_mcu_count_vertical();
-    Sirikata::Array1d<BlockBasedImagePerChannel<true>,
-                      MAX_NUM_THREADS> framebuffer;
+    Sirikata::Array1d<uint32_t, (std::size_t)ColorChannel::NumBlockTypes> max_coded_heights = colldata.get_max_coded_heights();
+    Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks = colldata.get_component_size_in_blocks();
+    
+	int mcu_count_vertical = colldata.get_mcu_count_vertical();
+    Sirikata::Array1d<BlockBasedImagePerChannel<true>, MAX_NUM_THREADS> framebuffer;
 
-    for (size_t thread_id = 0; thread_id < NUM_THREADS; ++thread_id) {
+    for (std::size_t thread_id = 0; thread_id < NUM_THREADS; ++thread_id) {
         for(int cmp = 0; cmp < colldata.get_num_components(); ++cmp) {
             framebuffer[thread_id][cmp] = new BlockBasedImageBase<true>;
             colldata.allocate_channel_framebuffer(cmp,
                                                   framebuffer[thread_id][cmp],
                                                   true);
         }
-        if (!g_threaded) {
-            break;
-        }
+        if (!g_threaded) { break; }
     }
-    std::vector<ThreadHandoff> luma_bounds = g_decoder->initialize_baseline_decoder(&colldata,
-                                                                                    framebuffer);
+	
+    std::vector<ThreadHandoff> luma_bounds = g_decoder->initialize_baseline_decoder(&colldata, framebuffer);
 
     if (luma_bounds.size() && luma_bounds[0].is_legacy_mode()) {
         g_threaded = false;
     }
+	
     /* step 3: decode the scan, row by row */
-    std::tuple<uint8_t, uint8_t, Sirikata::Array1d<int16_t, (size_t)ColorChannel::NumBlockTypes> > overhang_byte_and_bit_count;
+    std::tuple<uint8_t, uint8_t, Sirikata::Array1d<int16_t, (std::size_t)ColorChannel::NumBlockTypes> > overhang_byte_and_bit_count;
     std::get<0>(overhang_byte_and_bit_count) = 0;
     std::get<1>(overhang_byte_and_bit_count) = 0;
     std::get<2>(overhang_byte_and_bit_count).memset(0);
@@ -702,7 +704,8 @@ bool recode_baseline_jpeg(bounded_iostream*str_out,
     Sirikata::Array1d<Sirikata::BoundedMemWriter, MAX_NUM_THREADS - 1> local_buffers;
     Sirikata::Array1d<abitwriter *, MAX_NUM_THREADS> huffws;
     huffws.memset(0);
-    for (size_t i = 0; i < NUM_THREADS; ++i) {
+	
+    for (std::size_t i = 0; i < NUM_THREADS; ++i) {
         huffws[i] = new abitwriter(65536, max_file_size);
     }
 
@@ -710,8 +713,7 @@ bool recode_baseline_jpeg(bounded_iostream*str_out,
         for (unsigned int physical_thread_id = 1; physical_thread_id < (g_threaded ? NUM_THREADS : 1); ++physical_thread_id) {
             int work_size = 0;
             int logical_thread_start, logical_thread_end;
-            std::tie(logical_thread_start, logical_thread_end)
-                = logical_thread_range_from_physical_thread_id(physical_thread_id, luma_bounds.size());
+            std::tie(logical_thread_start, logical_thread_end) = logical_thread_range_from_physical_thread_id(physical_thread_id, luma_bounds.size());
 
             for (int logical_thread_id = logical_thread_start; logical_thread_id < logical_thread_end; ++logical_thread_id) {
                 work_size += luma_bounds[logical_thread_id].segment_size;
@@ -721,16 +723,16 @@ bool recode_baseline_jpeg(bounded_iostream*str_out,
             }
             local_buffers[physical_thread_id - 1].set_bound(work_size);
             auto work_fn = std::bind(&recode_physical_thread_wrapper,
-                                  &local_buffers[physical_thread_id - 1],
-                                  framebuffer[physical_thread_id],
-                                  mcu_count_vertical,
-                                  luma_bounds,
-                                  max_coded_heights,
-                                  component_size_in_blocks,
-                                  physical_thread_id,
-                                  huffws[physical_thread_id]);
-            g_decoder->getWorker(physical_thread_id - 1)->work
-                = work_fn;
+                                  	 &local_buffers[physical_thread_id - 1],
+                                  	 framebuffer[physical_thread_id],
+                                  	 mcu_count_vertical,
+                                  	 luma_bounds,
+                                  	 max_coded_heights,
+                                  	 component_size_in_blocks,
+                                  	 physical_thread_id,
+                                  	 huffws[physical_thread_id]);
+			
+            g_decoder->getWorker(physical_thread_id - 1)->work = work_fn;
             g_decoder->getWorker(physical_thread_id - 1)->activate_work();
                     
         }
@@ -741,39 +743,37 @@ bool recode_baseline_jpeg(bounded_iostream*str_out,
                            luma_bounds,
                            max_coded_heights,
                            component_size_in_blocks,
-                           0,
-                           huffws[0]);
+                           0, huffws[0]);
     TimingHarness::timing[0][TimingHarness::TS_JPEG_RECODE_STARTED] = TimingHarness::get_time_us();
+	
     for (unsigned int physical_thread_id = 1;physical_thread_id < (g_threaded ? NUM_THREADS : 1); ++physical_thread_id) {
         TimingHarness::timing[physical_thread_id][TimingHarness::TS_THREAD_WAIT_STARTED] = TimingHarness::get_time_us();
 
         g_decoder->getWorker(physical_thread_id - 1)->main_wait_for_done();
         TimingHarness::timing[physical_thread_id][TimingHarness::TS_THREAD_WAIT_FINISHED] =
             TimingHarness::timing[physical_thread_id][TimingHarness::TS_JPEG_RECODE_STARTED] = TimingHarness::get_time_us();
-        size_t bytes_to_copy = local_buffers[physical_thread_id - 1].bytes_written();
+        std::size_t bytes_to_copy = local_buffers[physical_thread_id - 1].bytes_written();
         if (bytes_to_copy) {
             local_bound -= bytes_to_copy;
             str_out->write(&local_buffers[physical_thread_id - 1].buffer()[0],
                            bytes_to_copy);
         }
         TimingHarness::timing[physical_thread_id][TimingHarness::TS_JPEG_RECODE_FINISHED] = TimingHarness::get_time_us();
-
     }
+	
     if (!rst_err.empty()) {
-
-        unsigned int cumulative_reset_markers = rsti ? (mcuh * mcuv - 1)/ rsti : 0;
+        unsigned int cumulative_reset_markers = rsti ? (mcuh * mcuv - 1) / rsti : 0;
         for (unsigned char i = 0; i < rst_err[0]; ++i) {
             const unsigned char mrk = 0xFF;
-            const unsigned char rst = 0xD0 + ( (cumulative_reset_markers + i) & 7 );
+            const unsigned char rst = 0xD0 + ((cumulative_reset_markers + i) & 7);
             str_out->write_byte(mrk);
             str_out->write_byte(rst);
-
         }
     }
 
     /* step 3: blit any trailing data */
     if (!str_out->has_reached_bound() ) {
-        str_out->write( hdrdata + byte_position, hdrs - byte_position );
+        str_out->write(hdrdata + byte_position, hdrs - byte_position);
     }
 
     check_decompression_memory_bound_ok();
@@ -785,14 +785,16 @@ bool recode_baseline_jpeg(bounded_iostream*str_out,
     str_out->set_bound(max_file_size);
     check_decompression_memory_bound_ok();
     // write garbage if needed
-    if ( grbs > 0 )
-        str_out->write( grbgdata, grbs );
-    check_decompression_memory_bound_ok();
+    if (grbs > 0) {
+        str_out->write(grbgdata, grbs);
+	}
+    
+	check_decompression_memory_bound_ok();
     str_out->flush();
     TimingHarness::timing[0][TimingHarness::TS_JPEG_RECODE_FINISHED] = TimingHarness::get_time_us();
 
     // errormessage if write error
-    if ( str_out->chkerr() ) {
+    if (str_out->chkerr()) {
         fprintf( stderr, "write error, possibly drive is full" );
         return false;
     }

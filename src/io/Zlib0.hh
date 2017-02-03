@@ -26,31 +26,40 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "Reader.hh"
-namespace Sirikata {
-/**
- * Writes a zlib compression stream given an input
- * Currently only supports nop mode
- */
-class SIRIKATA_EXPORT Zlib0Writer : public DecoderWriter {
-    DecoderWriter *mBase;
-    // currently the system only works for a preconceived filesize
-    size_t mFileSize;
-    size_t mWritten;
-    uint32_t mAdler32; // adler32 sum
-    bool mClosed;
-    uint16_t mBilledBytesLeft; // how many bytes are left in this block
-    std::pair<uint32, JpegError> writeHeader();
-  public:
-    Zlib0Writer(DecoderWriter * stream, int level);
-    void setFullFileSize(size_t size) {
-        mFileSize = size;
-    }
-    virtual std::pair<uint32, JpegError> Write(const uint8*data, unsigned int size);
-    virtual ~Zlib0Writer();
-    /// writes the adler32 sum
-    virtual void Close();
-    static size_t getCompressedSize(size_t originalSize);
-};
 
-}
+#include "Reader.hh"
+
+namespace Sirikata {
+	/**
+	 * Writes a zlib compression stream given an input
+	 * Currently only supports nop mode
+	 */
+	class SIRIKATA_EXPORT Zlib0Writer : public DecoderWriter {
+		
+	    DecoderWriter* mBase;
+	    
+		// currently the system only works for a preconceived filesize
+	    std::size_t mFileSize;
+	    std::size_t mWritten;
+	    uint32_t mAdler32; // adler32 sum
+	    bool mClosed;
+	    uint16_t mBilledBytesLeft; // how many bytes are left in this block
+	    
+		std::pair<uint32, JpegError> writeHeader();
+		
+		public:
+		    Zlib0Writer(DecoderWriter* stream, int level);
+		    
+			void setFullFileSize(std::size_t size) {
+		        mFileSize = size;
+		    }
+		    
+			virtual std::pair<uint32, JpegError> Write(const uint8* data, unsigned int size);
+		    virtual ~Zlib0Writer();
+		    
+			/// writes the adler32 sum
+		    virtual void Close();
+		    static std::size_t getCompressedSize(std::size_t originalSize);
+	};
+
+} /// namespace Sirikata

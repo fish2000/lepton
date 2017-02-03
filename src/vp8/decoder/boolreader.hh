@@ -24,10 +24,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” 
 #ifndef VPX_DSP_BITREADER_H_
 #define VPX_DSP_BITREADER_H_
 
-#include <stddef.h>
-#include <assert.h>
-#include <limits.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cassert>
+#include <climits>
+#include <cstdint>
 #include "vpx_config.hh"
 #include "billing.hh"
 #include "../model/numeric.hh"

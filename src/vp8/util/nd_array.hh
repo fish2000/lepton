@@ -32,14 +32,14 @@
 
 #ifndef _SIRIKATA_ARRAY_ND_HPP_
 #define _SIRIKATA_ARRAY_ND_HPP_
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus > 199711L || defined(_WIN32)
 #include <cstdint>
 #else
-#include <assert.h>
-#include <stdint.h>
+#include <cassert>
+#include <cstdint>
 #define constexpr
 #define NOCONSTEXPR
 #endif

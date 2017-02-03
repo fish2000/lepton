@@ -7,7 +7,7 @@
 #include <utility>
 // for std::min
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <immintrin.h>
 #include <tmmintrin.h>
 #include "../util/mm_mullo_epi32.hh"

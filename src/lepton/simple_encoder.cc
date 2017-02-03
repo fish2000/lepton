@@ -1,5 +1,6 @@
 /* -*-mode:c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-#include <string.h>
+
+#include <cstring>
 #include "bitops.hh"
 #include "component_info.hh"
 #include "uncompressed_components.hh"
@@ -9,20 +10,21 @@
 #include <algorithm>
 
 BlockType bt_get_cmp(int cur_read_batch[3], int target[3]);
+
 SimpleComponentEncoder::SimpleComponentEncoder() {
-    memset(target, 0, sizeof(target));
-    memset(cur_read_batch, 0, sizeof(cur_read_batch));
+    std::memset(target, 0, sizeof(target));
+    std::memset(cur_read_batch, 0, sizeof(cur_read_batch));
 }
-CodingReturnValue SimpleComponentEncoder::encode_chunk(const UncompressedComponents *colldata,
-                                                       IOUtil::FileWriter *str_out,
-                                                       const ThreadHandoff *selected_splits,
-                                                       unsigned int num_selected_splits)
-{
+
+CodingReturnValue SimpleComponentEncoder::encode_chunk(const UncompressedComponents* colldata,
+                                                       IOUtil::FileWriter* str_out,
+                                                       const ThreadHandoff* selected_splits,
+                                                       unsigned int num_selected_splits) {
     // read coefficient data from file
     unsigned int batch_size = 1600;
 
     char zero[sizeof(target)] = {0};
-    if (memcmp(target, zero, sizeof(target)) == 0) {
+    if (std::memcmp(target, zero, sizeof(target)) == 0) {
         unsigned int t24 = 65536 * 256;
         unsigned char bs[4] = {(unsigned char)(batch_size & 0xff), (unsigned char)((batch_size / 256) & 0xff),
                                (unsigned char)((batch_size / 65536) & 0xff), (unsigned char)((batch_size / t24) & 0xff)};
@@ -49,6 +51,4 @@ CodingReturnValue SimpleComponentEncoder::encode_chunk(const UncompressedCompone
     return CODING_PARTIAL;
 }
 
-SimpleComponentEncoder::~SimpleComponentEncoder() {
-
-}
+SimpleComponentEncoder::~SimpleComponentEncoder() {}

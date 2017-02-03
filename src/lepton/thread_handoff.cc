@@ -1,7 +1,7 @@
 #include "thread_handoff.hh"
 #include "../vp8/util/memory.hh"
 
-std::vector<ThreadHandoff> ThreadHandoff::deserialize(const unsigned char *data, size_t max_size) {
+std::vector<ThreadHandoff> ThreadHandoff::deserialize(const unsigned char* data, std::size_t max_size) {
     if (max_size < 2 || data[0] != 'H') {
         custom_exit(ExitCode::VERSION_UNSUPPORTED);
     }
@@ -9,7 +9,7 @@ std::vector<ThreadHandoff> ThreadHandoff::deserialize(const unsigned char *data,
     int num_threads = data[0];
     ++data; --max_size;
     std::vector<ThreadHandoff> retval;
-    if (int( max_size ) < BYTES_PER_HANDOFF * num_threads) {
+    if (int(max_size) < BYTES_PER_HANDOFF * num_threads) {
         custom_exit(ExitCode::VERSION_UNSUPPORTED);
     }
     for (int i = 0; i< num_threads; ++i) {
@@ -19,7 +19,7 @@ std::vector<ThreadHandoff> ThreadHandoff::deserialize(const unsigned char *data,
         th.overhang_byte = data[6];
         th.num_overhang_bits = data[7];
         int biggest_value = 7;
-        for (size_t i = 0; i < 4; ++i) {
+        for (std::size_t i = 0; i < 4; ++i) {
             int32_t dc = data[8 + 2 * i] + data[biggest_value = 9 + 2 * i] * 0x100;
             if (dc >= 32768) {
                 dc -= 65536;
@@ -37,13 +37,15 @@ std::vector<ThreadHandoff> ThreadHandoff::deserialize(const unsigned char *data,
     }
     return retval;
 }
-size_t ThreadHandoff::get_remaining_data_size_from_two_bytes(unsigned char input[2]) {
+
+std::size_t ThreadHandoff::get_remaining_data_size_from_two_bytes(unsigned char input[2]) {
     if (input[0] != 'H') {
         custom_exit(ExitCode::VERSION_UNSUPPORTED);
     }
     return input[1] * ThreadHandoff::BYTES_PER_HANDOFF;
 }
-std::vector<unsigned char> ThreadHandoff::serialize(const ThreadHandoff * data,
+
+std::vector<unsigned char> ThreadHandoff::serialize(const ThreadHandoff* data,
                                                     unsigned int num_threads) {
     always_assert(num_threads == NUM_THREADS);
     std::vector<unsigned char> retval;
@@ -74,6 +76,7 @@ std::vector<unsigned char> ThreadHandoff::serialize(const ThreadHandoff * data,
     }
     return retval;
 }
+
 std::vector<ThreadHandoff> ThreadHandoff::make_rand(int num) {
     std::vector<ThreadHandoff> retval(num);
     for (int i = 0; i < num; ++i) {
@@ -89,18 +92,19 @@ std::vector<ThreadHandoff> ThreadHandoff::make_rand(int num) {
         }
     }
     retval[num - 1].luma_y_end = 0;
-    for (size_t i = 1; i < retval.size(); ++i) {
+    for (std::size_t i = 1; i < retval.size(); ++i) {
         retval[i - 1].luma_y_end = retval[i].luma_y_start;
     }
     return retval;
 }
+
 /* combine two ThreadHandoff objects into a range, starting with the initialization
    of the thread represented by the first object, and continuing until the end
    of the second object */
-ThreadHandoff ThreadHandoff::operator-( const ThreadHandoff & other ) const
-{
-  ThreadHandoff ret = other;
-  ret.luma_y_end = luma_y_start;
-  ret.segment_size = segment_size - other.segment_size;
-  return ret;
+
+ThreadHandoff ThreadHandoff::operator-(ThreadHandoff const& other) const {
+	ThreadHandoff ret = other;
+	ret.luma_y_end = luma_y_start;
+	ret.segment_size = segment_size - other.segment_size;
+	return ret;
 }

@@ -31,19 +31,24 @@
 
 #include "Allocator.hh"
 #include "Error.hh"
-namespace Sirikata {
-class SIRIKATA_EXPORT DecoderReader {
-public:
-    virtual std::pair<uint32, JpegError> Read(uint8*data, unsigned int size) = 0;
-    virtual ~DecoderReader(){}
-};
-class SIRIKATA_EXPORT DecoderWriter {
-public:
-    virtual std::pair<uint32, JpegError> Write(const uint8*data, unsigned int size) = 0;
-    virtual void Close() = 0;
-    virtual ~DecoderWriter(){}
-};
 
-SIRIKATA_FUNCTION_EXPORT JpegError Copy(DecoderReader &r, DecoderWriter &w, const JpegAllocator<uint8> &alloc);
-}
-#endif
+namespace Sirikata {
+
+	class SIRIKATA_EXPORT DecoderReader {
+		public:
+		    virtual std::pair<uint32, JpegError> Read(uint8* data, unsigned int size) = 0;
+		    virtual ~DecoderReader() {}
+	};
+	
+	class SIRIKATA_EXPORT DecoderWriter {
+		public:
+		    virtual std::pair<uint32, JpegError> Write(const uint8* data, unsigned int size) = 0;
+		    virtual void Close() = 0;
+		    virtual ~DecoderWriter() {}
+	};
+
+	SIRIKATA_FUNCTION_EXPORT JpegError Copy(DecoderReader& r, DecoderWriter& w, JpegAllocator<uint8> const& alloc);
+
+} /// namespace Sirikata
+
+#endif /// _SIRIKATA_READER_HPP_

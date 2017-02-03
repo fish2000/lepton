@@ -1,6 +1,6 @@
 #ifndef _ALIGNED_BLOCK_HH_
 #define _ALIGNED_BLOCK_HH_
-#include <assert.h>
+#include <cassert>
 #include "nd_array.hh"
 #include "jpeg_meta.hh"
 #include "../model/color_context.hh"

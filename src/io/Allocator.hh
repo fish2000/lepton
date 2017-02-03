@@ -26,10 +26,13 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef _SIRIKATA_JPEG_ARHC_ALLOCATOR_HPP_
 #define _SIRIKATA_JPEG_ARHC_ALLOCATOR_HPP_
-#include <stdlib.h>
+
+#include <cstdlib>
 #include "DecoderPlatform.hh"
+
 namespace Sirikata {
 
 template<class T> class JpegAllocator {
@@ -85,9 +88,9 @@ public:
     JpegAllocator() throw() {
         custom_allocate = &malloc_wrapper;
         custom_deallocate = &free_wrapper;
-        custom_reallocate = NULL;
-        custom_msize = NULL;
-        opaque = NULL;
+        custom_reallocate =  nullptr;
+        custom_msize =  nullptr;
+        opaque =  nullptr;
     }
     template <class U> struct rebind { typedef JpegAllocator<U> other; };
     JpegAllocator(const JpegAllocator&other)throw() {
@@ -123,14 +126,14 @@ public:
     // this tears down all users of this memory subsystem
     void teardown_memory_subsystem(void (*custom_deinit)(void *opaque)) {
         (*custom_deinit)(opaque);
-        opaque = NULL;
+        opaque =  nullptr;
     }
 
     pointer allocate(size_type s, void const * = 0) {
         if (0 == s)
-            return NULL;
+            return  nullptr;
         pointer temp = (pointer)(*custom_allocate)(opaque, 1, s * sizeof(T)); 
-        if (temp == NULL) {
+        if (temp ==  nullptr) {
 #ifdef __EXCEPTIONS
 
             throw std::bad_alloc();

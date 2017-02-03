@@ -32,8 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	----------------------------------------------- */
 
 // maxima for each frequency in zigzag order
-const unsigned short int freqmax[] =
-{
+const unsigned short int freqmax[] = {
 	1024,  931,  932,  985,  858,  985,  968,  884, 
 	 884,  967, 1020,  841,  871,  840, 1020,  968, 
 	 932,  875,  876,  932,  969, 1020,  838,  985, 
@@ -43,9 +42,9 @@ const unsigned short int freqmax[] =
 	 854,  838, 1010,  838, 1020,  837, 1020,  969, 
 	 969, 1020,  838, 1020,  838, 1020, 1020,  838
 };
+
 /*
-const unsigned short int freqmax[] =
-{
+const unsigned short int freqmax[] = {
 	1024,  924,  924,  942,  838,  942,  924,  854,
 	 854,  924, 1020,  837,  871,  838, 1020,  924,
 	 924,  854,  854,  924,  924,  942,  838,  942,
@@ -58,8 +57,7 @@ const unsigned short int freqmax[] =
 */
 
 // maxima for each frequency - IJG DCT float
-const unsigned short int freqmax_float[] =
-{
+const unsigned short int freqmax_float[] = {
 	1024,  924,  942,  924, 1020,  924,  942,  924,
 	 924,  837,  854,  837,  924,  837,  854,  837,
 	 942,  854,  871,  854,  942,  854,  871,  854,
@@ -71,8 +69,7 @@ const unsigned short int freqmax_float[] =
 };
 
 // maxima for each frequency - IJG DCT int
-const unsigned short int freqmax_int[] =
-{
+const unsigned short int freqmax_int[] = {
 	1024,  924,  942,  924, 1020,  924,  942,  924,
 	 924,  838,  854,  838,  924,  838,  854,  838,
 	 942,  854,  871,  854,  942,  854,  871,  854,
@@ -84,8 +81,7 @@ const unsigned short int freqmax_int[] =
 };
 
 // maxima for each frequency - IJG DCT fast
-const unsigned short int freqmax_fast[] =
-{
+const unsigned short int freqmax_fast[] = {
 	1024,  931,  985,  968, 1020,  968, 1020, 1020,
 	 932,  858,  884,  840,  932,  812,  854,  854,
 	 985,  884,  849,  875,  985,  878,  821,  821,
@@ -97,8 +93,7 @@ const unsigned short int freqmax_fast[] =
 };
 
 // maxima for each frequency - IJG DCT max
-const unsigned short int freqmax_ijg[] =
-{
+const unsigned short int freqmax_ijg[] = {
 	1024,  931,  985,  968, 1020,  968, 1020, 1020,
 	 932,  858,  884,  840,  932,  838,  854,  854,
 	 985,  884,  871,  875,  985,  878,  871,  854,
@@ -110,8 +105,7 @@ const unsigned short int freqmax_ijg[] =
 };
 
 // standard scan = zigzag scan
-unsigned char stdscan[] =
-{
+unsigned char stdscan[] = {
 	 0,  1,  2,  3,  4,  5,  6,  7,
 	 8,  9, 10, 11, 12, 13, 14, 15,
 	16,	17, 18, 19, 20, 21, 22, 23,
@@ -123,8 +117,7 @@ unsigned char stdscan[] =
 };
 
 // zagzig scan, can be used instead of zigzag scan
-unsigned char zagscan[] =
-{
+unsigned char zagscan[] = {
 	 0,  2,  1,  5,  4,  3,  9,  8,
 	 7,  6, 14, 13, 12, 11, 10, 20,
 	19,	18, 17, 16, 15, 27, 26, 25,
@@ -137,8 +130,7 @@ unsigned char zagscan[] =
 
 
 // zigzag scan reverse conversion table
-const int jpeg_natural_order[] =
-{
+const int jpeg_natural_order[] = {
 	 0,  1,  8, 16,  9,  2,  3, 10,
 	17, 24, 32, 25, 18, 11,  4,  5,
 	12, 19, 26, 33, 40, 48, 41, 34,
@@ -150,8 +142,7 @@ const int jpeg_natural_order[] =
 };
 
 // scans for each frequency 
-const char freqalign[] =
-{
+const char freqalign[] = {
 	'm', 'v', 'v', 'v', 'v', 'v', 'v', 'v',
 	'h', 'm', 'v', 'v', 'v', 'v', 'v', 'v',
 	'h', 'h', 'm', 'v', 'v', 'v', 'v', 'v',
@@ -163,8 +154,7 @@ const char freqalign[] =
 };
 
 // chengjie tu subband classification
-const int ctxclass[] =
-{
+const int ctxclass[] = {
 	0, 1, 3, 3, 3, 6, 6, 6, // 0 -> DC (DC subband)
 	2, 5, 5, 5, 6, 6, 6, 6, // 1 -> PV (principal vertical)
 	4, 5, 5, 5, 6, 6, 6, 6, // 2 -> PH (principal horizontal)
@@ -176,17 +166,14 @@ const int ctxclass[] =
 };
 
 // standard huffman tables, found in JPEG specification, Chapter K.3
-const unsigned char std_huff_tables[4][272] =
-{
+const unsigned char std_huff_tables[4][272] = {
 	{	// standard luma dc table (0/0)
 		0x00,0x01,0x05,0x01,0x01,0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B
-	},
-	{	// standard chroma dc table (0/1)
+	}, {	// standard chroma dc table (0/1)
 		0x00,0x03,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B
-	},
-	{	// standard luma ac table (1/0)
+	}, {	// standard luma ac table (1/0)
 		0x00,0x02,0x01,0x03,0x03,0x02,0x04,0x03,0x05,0x05,0x04,0x04,0x00,0x00,0x01,0x7D,
 		0x01,0x02,0x03,0x00,0x04,0x11,0x05,0x12,0x21,0x31,0x41,0x06,0x13,0x51,0x61,0x07,
 		0x22,0x71,0x14,0x32,0x81,0x91,0xA1,0x08,0x23,0x42,0xB1,0xC1,0x15,0x52,0xD1,0xF0,
@@ -199,8 +186,7 @@ const unsigned char std_huff_tables[4][272] =
 		0xC6,0xC7,0xC8,0xC9,0xCA,0xD2,0xD3,0xD4,0xD5,0xD6,0xD7,0xD8,0xD9,0xDA,0xE1,0xE2,
 		0xE3,0xE4,0xE5,0xE6,0xE7,0xE8,0xE9,0xEA,0xF1,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF8,
 		0xF9,0xFA
-	},
-	{	// standard chroma ac table (1/1)
+	}, {	// standard chroma ac table (1/1)
 		0x00,0x02,0x01,0x02,0x04,0x04,0x03,0x04,0x07,0x05,0x04,0x04,0x00,0x01,0x02,0x77,
 		0x00,0x01,0x02,0x03,0x11,0x04,0x05,0x21,0x31,0x06,0x12,0x41,0x51,0x07,0x61,0x71,
 		0x13,0x22,0x32,0x81,0x08,0x14,0x42,0x91,0xA1,0xB1,0xC1,0x09,0x23,0x33,0x52,0xF0,
@@ -217,4 +203,4 @@ const unsigned char std_huff_tables[4][272] =
 };
 
 // lengths of standard huffmann tables
-const unsigned char std_huff_lengths[ 4 ] =	{ 28, 28, 178, 178 };
+const unsigned char std_huff_lengths[4] = { 28, 28, 178, 178 };

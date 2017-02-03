@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 
-#include <assert.h>
+#include <cassert>
 #include "branch.hh"
 #include "../../io/MemReadWriter.hh"
 #include "JpegArithmeticCoder.hh"

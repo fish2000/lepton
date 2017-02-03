@@ -1,6 +1,8 @@
 /* -*-mode:c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+
 #ifndef _COMPONENT_INFO_HH_
 #define _COMPONENT_INFO_HH_
+
 struct componentInfo {
 	unsigned short* qtable; // quantization table
 	int huffdc; // no of huffman table (DC)
@@ -18,4 +20,4 @@ struct componentInfo {
 	int jid; // jpeg internal id
 };
 
-#endif
+#endif /// _COMPONENT_INFO_HH_

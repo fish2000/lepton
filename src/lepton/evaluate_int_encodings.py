@@ -1,5 +1,7 @@
+
 import sys
 from collections import defaultdict
+
 def load_histogram(fn):
     ret = defaultdict(dict)
     with open(fn) as f:
@@ -17,7 +19,7 @@ def load_histogram(fn):
 
 def make_unary_sign_cost():
     ret = {}
-    for i in range(-1025, 1025):
+    for i in xrange(-1025, 1025):
         if not i:
             ret[i] = 1
         elif i < 0:
@@ -28,7 +30,7 @@ def make_unary_sign_cost():
 
 def make_unary_cost():
     ret = {}
-    for i in range(-1025, 1025):
+    for i in xrange(-1025, 1025):
         if not i:
             ret[i] = 1
         elif i < 0:
@@ -45,6 +47,7 @@ def log2(i):
         if i:
             ret += 1
     return ret
+
 def log2_length(i):
     if i == 0:
         return 0
@@ -54,12 +57,12 @@ def log2_length(i):
 
 def make_unary_trunc_cost(n):
     base_cutoff_cost = n
-    ret = defaultdict(lambda:0)
-    for i in range(-1025, 1025):
+    ret = defaultdict(lambda: 0)
+    for i in xrange(-1025, 1025):
         absi = i if i > 0 else -i
         l2len = log2_length(absi - n)
         ret[i] = l2len + 2 + (l2len - 1 if l2len else 0) + base_cutoff_cost
-    for i in range(-n, n + 1):
+    for i in xrange(-n, n + 1):
         if not i:
             ret[i] = 1
         elif i < 0:
@@ -71,9 +74,12 @@ def make_unary_trunc_cost(n):
 unary_sign_cost = make_unary_sign_cost()
 unary_cost = make_unary_cost()
 unary_trunc_cost = []
-for i in range(20):
+
+for i in xrange(20):
     unary_trunc_cost.append(make_unary_trunc_cost(i))
-unary_exponent_cost = {0 : 1, # 1 exp
+
+unary_exponent_cost = {
+              0 : 1, # 1 exp
               1 : 3, # 2 exp, 1 sign
               2 : 5, # 3 exp, 1 sign, 1 rem
               3 : 7, # 4 exp, 1 sign, 2 rem
@@ -83,9 +89,11 @@ unary_exponent_cost = {0 : 1, # 1 exp
               7 : 15,
               8 : 17,
               9 : 19,
-              10 : 20}
+              10 : 20
+          }
 
-unary_one_case_exponent_cost = {0 : 1, # 1 exp
+unary_one_case_exponent_cost = {
+              0 : 1, # 1 exp
               1 : 2, # 2 exp, 1 sign
               2 : 6, # 3 exp, 1 sign, 1 rem
               3 : 8, # 4 exp, 1 sign, 2 rem
@@ -105,9 +113,11 @@ unary_one_case_exponent_cost = {0 : 1, # 1 exp
               -7 : 16,
               -8 : 18,
               -9 : 20,
-              -10 : 21}
+              -10 : 21
+          }
 
-binary_cost = {0 : 2, # 2 exp
+binary_cost = {
+               0 : 2, # 2 exp
                1 : 5, # 4 exp, 1 sign
                2 : 6, # 4 exp, 1 sign, 1 rem
                3 : 7, # 4 exp, 1 sign, 2 rem
@@ -117,7 +127,9 @@ binary_cost = {0 : 2, # 2 exp
               7 : 11,
               8 : 12,
               9 : 13,
-              10 : 14}
+              10 : 14
+          }
+
 def eval_binary_cost(h):
     count = 0
     max = 0
@@ -126,7 +138,7 @@ def eval_binary_cost(h):
             max = i
         count += h[i]
     bin_cost = log2_length(max)
-    #print "max was ", max, "count was ", count, "cost was ",bin_cost,"per item"
+    # print "max was ", max, "count was ", count, "cost was ",bin_cost,"per item"
     return count * bin_cost
 
 def eval_cost(h, c, dolog=False):
@@ -141,17 +153,18 @@ def eval_cost(h, c, dolog=False):
             cost = c[cost_index]
         ret += h[i] * cost
     return ret
-for arg in sys.argv[1:]:
-    hists = load_histogram(arg)
-    total_count = 0
-    for name, count in hists.iteritems():
-        print arg + '.' + name, 'pure_bin_cost', eval_binary_cost(count)
-        print arg + '.' + name, 'unary_exp_cost', eval_cost(count, unary_exponent_cost, dolog=True)
-        print arg + '.' + name, 'unary0exp_cost', eval_cost(count, unary_one_case_exponent_cost, dolog=True)
-        print arg + '.' + name, 'binaryexp_cost', eval_cost(count, binary_cost, dolog=True)
-        print arg + '.' + name, 'unary_cost', eval_cost(count, unary_cost)
-        for i in range(len(unary_trunc_cost)):
-            #print i, unary_trunc_cost
-            print arg + '.' + name, 'untrunc' + str(i//10) + str(i%10), \
-              eval_cost(count, unary_trunc_cost[i])
+
+if __name__ == '__main__':
+    for arg in sys.argv[1:]:
+        hists = load_histogram(arg)
+        total_count = 0
+        for name, count in hists.iteritems():
+            print arg + '.' + name, 'pure_bin_cost', eval_binary_cost(count)
+            print arg + '.' + name, 'unary_exp_cost', eval_cost(count, unary_exponent_cost, dolog=True)
+            print arg + '.' + name, 'unary0exp_cost', eval_cost(count, unary_one_case_exponent_cost, dolog=True)
+            print arg + '.' + name, 'binaryexp_cost', eval_cost(count, binary_cost, dolog=True)
+            print arg + '.' + name, 'unary_cost', eval_cost(count, unary_cost)
+            for i in xrange(len(unary_trunc_cost)):
+                # print i, unary_trunc_cost
+                print arg + '.' + name, 'untrunc' + str(i // 10) + str(i % 10), eval_cost(count, unary_trunc_cost[i])
 

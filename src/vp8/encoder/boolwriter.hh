@@ -24,7 +24,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” 
 #ifndef VPX_DSP_BITWRITER_H_
 #define VPX_DSP_BITWRITER_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "vpx_config.hh"
 #include "billing.hh"

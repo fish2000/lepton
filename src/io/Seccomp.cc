@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #ifdef __linux
 #include <sys/wait.h>
 #include <linux/seccomp.h>
@@ -80,31 +80,31 @@ bool installStrictSyscallFilter(bool verbose) {
     struct sock_fprog prog;
     prog.len = (unsigned short)(sizeof(filter)/sizeof(filter[0]));
     prog.filter = filter;
-    if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT)) {
+    if (::prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT)) {
         if (verbose) {
             perror("prctl(SECCOMP)");
         }
         if (errno == EINVAL && verbose) {
-            fprintf(stderr, "SECCOMP_MODE_STRICT is not available.\n%s",
+            std::fprintf(stderr, "SECCOMP_MODE_STRICT is not available.\n%s",
                 "Trying to set a filter to emulate strict mode\n");
         }
-        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
+        if (::prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
             if (verbose) {
                 perror("prctl(NO_NEW_PRIVS)");
             }
-            exit(1);
+            std::exit(1);
         }
-        if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog)) {
+        if (::prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog)) {
             if (verbose) {
                 perror("prctl(SECCOMP)");
             }
-            exit(1);
+            std::exit(1);
         }
     }
     return true;
 #else
     if (verbose) {
-        fprintf(stderr, "SECCOMP not supported on this OS (linux only)\n");
+        std::fprintf(stderr, "SECCOMP not supported on this OS (linux only)\n");
     }
     return false;
 #endif

@@ -3,7 +3,7 @@
 #else
 #include <unistd.h>
 #endif
-#include <errno.h>
+#include <cerrno>
 #include "billing.hh"
 #define BILLING_MAP_INIT(X) 0,
 

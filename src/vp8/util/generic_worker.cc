@@ -1,6 +1,6 @@
 #include "memory.hh"
 #include <emmintrin.h>
-#include <assert.h>
+#include <cassert>
 #ifdef _WIN32
 #include <io.h>
 #include <Windows.h>
@@ -8,7 +8,7 @@
 #else
 #include <unistd.h>
 #endif
-#include <errno.h>
+#include <cerrno>
 #ifdef __linux
 #include <linux/seccomp.h>
 #include <sys/prctl.h>

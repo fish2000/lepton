@@ -1,5 +1,5 @@
 #include "../util/memory.hh"
-#include <assert.h>
+#include <cassert>
 #ifdef _WIN32
 #include <io.h>
 #else

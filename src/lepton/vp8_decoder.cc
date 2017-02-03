@@ -13,20 +13,17 @@
 
 #include "../io/Reader.hh"
 #include "../vp8/decoder/decoder.hh"
-using namespace std;
+// using namespace std;
 
-void VP8ComponentDecoder::initialize( Sirikata::DecoderReader *input,
-                                      const std::vector<ThreadHandoff>& thread_handoff)
-{
+void VP8ComponentDecoder::initialize(Sirikata::DecoderReader* input, std::vector<ThreadHandoff> const& thread_handoff) {
     str_in = input;
     mux_reader_.init(input);
     thread_handoff_ = thread_handoff;
 }
+
 void VP8ComponentDecoder::decode_row(int target_thread_id,
                                      BlockBasedImagePerChannel<true>& image_data, // FIXME: set image_data to true
-                                     Sirikata::Array1d<uint32_t,
-                                                       (uint32_t)ColorChannel::
-                                                       NumBlockTypes> component_size_in_blocks,
+                                     Sirikata::Array1d<uint32_t,(uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                      int component,
                                      int curr_y) {
     thread_state_[target_thread_id]->decode_row(image_data,
@@ -35,22 +32,18 @@ void VP8ComponentDecoder::decode_row(int target_thread_id,
                                                curr_y);
 }
 
-
 VP8ComponentDecoder::VP8ComponentDecoder(bool do_threading)
-    : VP8ComponentEncoder(do_threading),
-      mux_reader_(Sirikata::JpegAllocator<uint8_t>(),
-                  8,
-                  4096 * 1024 / MAX_NUM_THREADS + 131072) {
-    if (do_threading) {
-        virtual_thread_id_ = -1; // only using real threads here
-    } else {
-        virtual_thread_id_ = 0;
-    }
-}
+    :VP8ComponentEncoder(do_threading)
+    ,mux_reader_(Sirikata::JpegAllocator<uint8_t>(), 8, 4096 * 1024 / MAX_NUM_THREADS + 131072)
+	{
+		if (do_threading) {
+		    virtual_thread_id_ = -1; // only using real threads here
+		} else {
+		    virtual_thread_id_ = 0;
+		}
+	}
 
-VP8ComponentDecoder::~VP8ComponentDecoder() {
-}
-
+VP8ComponentDecoder::~VP8ComponentDecoder() {}
 
 #ifdef ALLOW_FOUR_COLORS
 #define ProbabilityTablesTuple(left, above, right) \
@@ -75,12 +68,13 @@ VP8ComponentDecoder::~VP8ComponentDecoder() {
 void VP8ComponentDecoder::clear_thread_state(int thread_id, int target_thread_state, BlockBasedImagePerChannel<true>& framebuffer) {
     initialize_thread_id(thread_id, target_thread_state, framebuffer);
 }
-void VP8ComponentDecoder::worker_thread(ThreadState *ts, int thread_id, UncompressedComponents * const colldata) {
+
+void VP8ComponentDecoder::worker_thread(ThreadState *ts, int thread_id, UncompressedComponents* const colldata) {
     TimingHarness::timing[thread_id][TimingHarness::TS_ARITH_STARTED] = TimingHarness::get_time_us();
-    while (ts->vp8_decode_thread(thread_id, colldata) == CODING_PARTIAL) {
-    }
+    while (ts->vp8_decode_thread(thread_id, colldata) == CODING_PARTIAL) {}
     TimingHarness::timing[thread_id][TimingHarness::TS_ARITH_FINISHED] = TimingHarness::get_time_us();
 }
+
 template <bool force_memory_optimized>
 void VP8ComponentDecoder::initialize_thread_id(int thread_id, int target_thread_state,
                                                BlockBasedImagePerChannel<force_memory_optimized>& framebuffer) {
@@ -90,23 +84,24 @@ void VP8ComponentDecoder::initialize_thread_id(int thread_id, int target_thread_
     //}
     thread_state_[target_thread_state]->decode_index_ = 0;
     for (unsigned int i = 0; i < framebuffer.size(); ++i) {
-        if (framebuffer[i] != NULL)  {
+        if (framebuffer[i] != nullptr)  {
             thread_state_[target_thread_state]->is_top_row_.at(i) = true;
             thread_state_[target_thread_state]->num_nonzeros_.at(i).resize(framebuffer[i]->block_width() << 1);
-            thread_state_[target_thread_state]->context_.at(i)
-                = framebuffer[i]->begin(thread_state_[target_thread_state]->num_nonzeros_.at(i).begin());
+            thread_state_[target_thread_state]->context_.at(i) = framebuffer[i]->begin(thread_state_[target_thread_state]->num_nonzeros_.at(i).begin());
         }
     }
+	
     /* initialize the bool decoder */
     int index = thread_id;
-    always_assert((size_t)index < streams_.size());
-    thread_state_[target_thread_state]->bool_decoder_.init(streams_[index].first != streams_
-[index].second
-                                                 ? &*streams_[index].first : nullptr,
-                                                 streams_[index].second - streams_[index].first );
+    always_assert((std::size_t)index < streams_.size());
+    
+	thread_state_[target_thread_state]->bool_decoder_.init(streams_[index].first != streams_[index].second ?
+														 &*streams_[index].first : nullptr,
+													 	   streams_[index].second - streams_[index].first);
+	
     thread_state_[target_thread_state]->is_valid_range_ = false;
     thread_state_[target_thread_state]->luma_splits_.resize(2);
-    if ((size_t)index < thread_handoff_.size()) {
+    if ((std::size_t)index < thread_handoff_.size()) {
         thread_state_[target_thread_state]->luma_splits_[0] = thread_handoff_[thread_id].luma_y_start;
         thread_state_[target_thread_state]->luma_splits_[1] = thread_handoff_[thread_id].luma_y_end;
     } else {
@@ -117,14 +112,15 @@ void VP8ComponentDecoder::initialize_thread_id(int thread_id, int target_thread_
     //        thread_state_[target_thread_state]->luma_splits_[1]);
     TimingHarness::timing[thread_id%NUM_THREADS][TimingHarness::TS_STREAM_MULTIPLEX_FINISHED] = TimingHarness::get_time_us();
 }
+
 std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_baseline_decoder(
-    const UncompressedComponents * const colldata,
-    Sirikata::Array1d<BlockBasedImagePerChannel<true>,
-                      MAX_NUM_THREADS>& framebuffer) {
+    const UncompressedComponents* const colldata,
+    Sirikata::Array1d<BlockBasedImagePerChannel<true>, MAX_NUM_THREADS>& framebuffer) {
     return initialize_decoder_state(colldata, framebuffer);
 }
+
 template <bool force_memory_optimized>
-std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const UncompressedComponents * const colldata,
+std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const UncompressedComponents* const colldata,
                                                    Sirikata::Array1d<BlockBasedImagePerChannel<force_memory_optimized>,
                                                                      MAX_NUM_THREADS>& framebuffer) {
     if (colldata->get_num_components() > (int)BlockType::Y) {
@@ -148,12 +144,12 @@ std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const U
     if (thread_handoff_.empty()) {
         /* read and verify "x" mark */
         unsigned char mark {};
-        const bool ok = str_in->Read( &mark, 1 ).second == Sirikata::JpegError::nil();
+        const bool ok = str_in->Read(&mark, 1).second == Sirikata::JpegError::nil();
         if (!ok) {
             return std::vector<ThreadHandoff>();
         }
         ThreadHandoff th;
-        memset(&th, 0, sizeof(th));
+        std::memset(&th, 0, sizeof(th));
         th.num_overhang_bits = ThreadHandoff::LEGACY_OVERHANG_BITS; // to make sure we don't use this value
         th.luma_y_end = colldata->block_height(0);
         thread_handoff_.insert(thread_handoff_.end(), mark, th);
@@ -164,7 +160,7 @@ std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const U
         for (int i = 0; i + 1 < mark; ++i) {
             thread_handoff_[i].luma_y_end = htole16(luma_splits_tmp[i]);
             if (thread_handoff_[i].luma_y_end % sfv_lcm) {
-                fprintf(stderr, "File Split %d = %d (remainder %d)\n",
+                std::fprintf(stderr, "File Split %d = %d (remainder %d)\n",
                         i, thread_handoff_[i].luma_y_end, sfv_lcm);
                 custom_exit(ExitCode::THREADING_PARTIAL_MCU);
             }
@@ -188,42 +184,37 @@ std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const U
     return thread_handoff_;
 }
 
-CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents * const colldata)
+CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents* const colldata)
 {
     /* cmpc is a global variable with the component count */
-
-
     /* construct 4x4 VP8 blocks to hold 8x8 JPEG blocks */
     if ( thread_state_[0] == nullptr || thread_state_[0]->context_[0].isNil() ) {
         /* first call */
         BlockBasedImagePerChannel<false> framebuffer;
         framebuffer.memset(0);
-        for (size_t i = 0; i < framebuffer.size() && int( i ) < colldata->get_num_components(); ++i) {
+        for (std::size_t i = 0; i < framebuffer.size() && int(i) < colldata->get_num_components(); ++i) {
             framebuffer[i] = &colldata->full_component_write((BlockType)i);
         }
         Sirikata::Array1d<BlockBasedImagePerChannel<false>, MAX_NUM_THREADS> all_framebuffers;
-        for (size_t i = 0; i < all_framebuffers.size(); ++i) {
+        for (std::size_t i = 0; i < all_framebuffers.size(); ++i) {
             all_framebuffers[i] = framebuffer;
         }
-        size_t num_threads_needed = initialize_decoder_state(colldata,
+        std::size_t num_threads_needed = initialize_decoder_state(colldata,
                                                              all_framebuffers).size();
-        for (size_t i = 0;i < num_threads_needed; ++i) {
+        for (std::size_t i = 0;i < num_threads_needed; ++i) {
             initialize_thread_id(i, i, framebuffer);
-            if (!do_threading_) {
-                break;
-            }
+            if (!do_threading_) { break; }
         }
         if (num_threads_needed > NUM_THREADS || num_threads_needed == 0) {
             return CODING_ERROR;
         }
         if (do_threading_) {
             for (unsigned int thread_id = 1; thread_id < NUM_THREADS; ++thread_id) {
-                spin_workers_[thread_id - 1].work
-                    = std::bind(worker_thread,
-                                thread_state_[thread_id],
-                                thread_id,
-                                colldata);
-                                spin_workers_[thread_id - 1].activate_work();
+                spin_workers_[thread_id - 1].work = std::bind(worker_thread,
+															  thread_state_[thread_id],
+															  thread_id,
+															  colldata);
+                spin_workers_[thread_id - 1].activate_work();
             }
         }
     }
@@ -246,10 +237,9 @@ CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents * con
         for (unsigned int thread_id = virtual_thread_id_; thread_id < NUM_THREADS; ++thread_id, ++virtual_thread_id_) {
             BlockBasedImagePerChannel<false> framebuffer;
             framebuffer.memset(0);
-            for (size_t i = 0; i < framebuffer.size() && int( i ) < colldata->get_num_components(); ++i) {
+            for (std::size_t i = 0; i < framebuffer.size() && int(i) < colldata->get_num_components(); ++i) {
                 framebuffer[i] = &colldata->full_component_write((BlockType)i);
             }
-
             initialize_thread_id(thread_id, 0, framebuffer);
             TimingHarness::timing[thread_id][TimingHarness::TS_ARITH_STARTED] = TimingHarness::get_time_us();
             if ((ret = thread_state_[0]->vp8_decode_thread(0, colldata)) == CODING_PARTIAL) {

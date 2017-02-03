@@ -13,15 +13,16 @@
 #define _SECCOMP_BPF_H_
 
 #define _GNU_SOURCE 1
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <errno.h>
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <cerrno>
+
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <sys/prctl.h>
+
 #ifndef PR_SET_NO_NEW_PRIVS
 # define PR_SET_NO_NEW_PRIVS 38
 #endif
@@ -29,14 +30,17 @@
 #include <linux/unistd.h>
 #include <linux/audit.h>
 #include <linux/filter.h>
+
 #ifdef HAVE_LINUX_SECCOMP_H
 # include <linux/seccomp.h>
 #endif
+
 #ifndef SECCOMP_MODE_FILTER
 # define SECCOMP_MODE_FILTER2 /* uses user-supplied filter. */
 # define SECCOMP_RET_KILL0x00000000U /* kill the task immediately */
 # define SECCOMP_RET_TRAP0x00030000U /* disallow and force a SIGSYS */
 # define SECCOMP_RET_ALLOW0x7fff0000U /* allow */
+
 struct seccomp_data {
     int nr;
     __u32 arch;

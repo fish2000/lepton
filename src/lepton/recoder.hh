@@ -1,12 +1,13 @@
+
 struct huffCodes {
-    unsigned short cval[ 256 ];
-    unsigned short clen[ 256 ];
+    unsigned short cval[256];
+    unsigned short clen[256];
     unsigned short max_eobrun;
 };
 
 struct huffTree {
-    unsigned short l[ 256 ];
-    unsigned short r[ 256 ];
+    unsigned short l[256];
+    unsigned short r[256];
 };
 
 struct MergeJpegProgress {
@@ -19,7 +20,8 @@ struct MergeJpegProgress {
     unsigned char  type; // type of current marker segment
     unsigned int num_rst_markers_this_scan;
     bool within_scan;
-    MergeJpegProgress *parent;
+    MergeJpegProgress* parent;
+	
     MergeJpegProgress() {
         //len  = 0; // length of current marker segment
         hpos = 0; // current position in header
@@ -30,23 +32,27 @@ struct MergeJpegProgress {
         scan = 1; // number of current scan
         type = 0x00; // type of current marker segment
         within_scan = false;
-        parent = NULL;
+        parent = nullptr;
     }
+	
     MergeJpegProgress(MergeJpegProgress*par) {
-        memcpy(this, par, sizeof(MergeJpegProgress));
+        std::memcpy(this, par, sizeof(MergeJpegProgress));
         parent = par;
     }
-    ~MergeJpegProgress() {
-        if (parent != NULL) {
+    
+	~MergeJpegProgress() {
+        if (parent != nullptr) {
             MergeJpegProgress *origParent = parent->parent;
-            memcpy(parent, this, sizeof(MergeJpegProgress));
+            std::memcpy(parent, this, sizeof(MergeJpegProgress));
             parent->parent = origParent;
         }
     }
-private:
-        MergeJpegProgress(const MergeJpegProgress&other); // disallow copy construction
-        MergeJpegProgress& operator=(const MergeJpegProgress&other); // disallow gets
+
+	private:
+		MergeJpegProgress(MergeJpegProgress const& other); // disallow copy construction
+        MergeJpegProgress& operator=(MergeJpegProgress const& other); // disallow gets
 };
+
 class bounded_iostream;
-bool recode_baseline_jpeg(bounded_iostream* str_out,
-                          int max_file_size);
+
+bool recode_baseline_jpeg(bounded_iostream* str_out, int max_file_size);

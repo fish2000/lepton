@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/fcntl.h>
 #endif
-#include <errno.h>
+#include <cerrno>
 #include "debug.hh"
 #include "memory.hh"
 

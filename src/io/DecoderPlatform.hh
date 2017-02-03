@@ -36,12 +36,14 @@
 #define SIRIKATA_PLUGIN_EXPORT
 #define __builtin_expect(x, y) x
 #endif
-#include <stdint.h>
-#include <stddef.h>
+
+#include <cstdint>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <algorithm>
 #include "../vp8/util/memory.hh"
+
 #define USE_MMAP
 namespace Sirikata{
 

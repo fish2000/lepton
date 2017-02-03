@@ -1,3 +1,6 @@
+
 namespace Sirikata {
-bool installStrictSyscallFilter(bool verbose);
+	
+	bool installStrictSyscallFilter(bool verbose);
+	
 }

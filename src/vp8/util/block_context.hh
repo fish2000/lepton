@@ -1,11 +1,14 @@
 #ifndef _BLOCK_CONTEXT_HH_
 #define _BLOCK_CONTEXT_HH_
+
 #include "options.hh"
 #include "tmmintrin.h"
+
 enum {
     IDCTSCALE = 1,
     xIDCTSCALE = 8
 };
+
 struct NeighborSummary {
     enum {
         VERTICAL_LAST_PIXEL_OFFSET_FROM_FIRST_PIXEL = 14

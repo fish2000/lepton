@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 #include "../util/memory.hh"
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 //#include "./vpx_config.h"
 
 #include "boolreader.hh"

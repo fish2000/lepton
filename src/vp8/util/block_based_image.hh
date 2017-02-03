@@ -1,11 +1,15 @@
+
 #ifndef _BLOCK_BASED_IMAGE_HH_
 #define _BLOCK_BASED_IMAGE_HH_
+
 #include "memory.hh"
 #include "aligned_block.hh"
 #include "block_context.hh"
 #include <map>
+
 extern bool g_allow_progressive;
-template<bool force_memory_optimization=false>
+
+template <bool force_memory_optimization=false>
 class BlockBasedImageBase {
     typedef AlignedBlock Block;
     Block *image_;
@@ -230,13 +234,16 @@ public:
         return image_[offset];
     }
 };
+
 class BlockBasedImage : public BlockBasedImageBase<false> {
     BlockBasedImage(const BlockBasedImage&) = delete;
     BlockBasedImage& operator=(const BlockBasedImage&) = delete;
 public:
     BlockBasedImage() {}
 };
-template<bool force_memory_optimization=false> class BlockBasedImagePerChannel :
+
+template <bool force_memory_optimization=false>
+class BlockBasedImagePerChannel :
     public Sirikata::Array1d<BlockBasedImageBase<force_memory_optimization> *,
                              (uint32_t)ColorChannel::NumBlockTypes> {
 public:
@@ -245,7 +252,8 @@ public:
     }
 };
 
-template<bool force_memory_optimization=false> class KBlockBasedImagePerChannel :
+template <bool force_memory_optimization=false>
+class KBlockBasedImagePerChannel :
     public Sirikata::Array1d<const BlockBasedImageBase<force_memory_optimization> *,
                              (uint32_t)ColorChannel::NumBlockTypes> {
 public:

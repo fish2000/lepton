@@ -5,10 +5,10 @@
 #include "uncompressed_components.hh"
 #include "jpgcoder.hh"
 #include "simple_decoder.hh"
-
 #include <algorithm>
+
 SimpleComponentDecoder::SimpleComponentDecoder() {
-    str_in = NULL;
+    str_in = nullptr;
     batch_size = 0;
     for (unsigned int i = 0; i < sizeof(cur_read_batch) / sizeof(cur_read_batch[0]); ++i) {
         cur_read_batch[i] = 0;
@@ -16,21 +16,21 @@ SimpleComponentDecoder::SimpleComponentDecoder() {
         started_scan[i] = false;
     }
 }
-void SimpleComponentDecoder::initialize(Sirikata::DecoderReader *i,
-                                        const std::vector<ThreadHandoff>& thread_transition_info) {
+
+void SimpleComponentDecoder::initialize(Sirikata::DecoderReader* i,
+                                        std::vector<ThreadHandoff> const& thread_transition_info) {
     this->str_in = i;
     this->thread_handoffs_ = thread_transition_info;
 }
 
 void SimpleComponentDecoder::decode_row(int thread_state_id,
                                         BlockBasedImagePerChannel<true>& image_data, // FIXME: set image_data to true
-                                        Sirikata::Array1d<uint32_t,
-                                                          (uint32_t)ColorChannel::
-                                                          NumBlockTypes> component_size_in_blocks,
+                                        Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                         int component,
                                         int curr_y) {
     custom_exit(ExitCode::ASSERTION_FAILURE);
 }
+
 BlockType bt_get_cmp(int cur_read_batch[3], int target[3]) {
     BlockType cmp = BlockType::Y;
     double cmp_progress = cur_read_batch[(int)cmp]/(double)target[(int)cmp];
@@ -66,16 +66,16 @@ CodingReturnValue SimpleComponentDecoder::decode_chunk(UncompressedComponents* c
         }
     }
     BlockType cmp = bt_get_cmp(cur_read_batch, target);
-    if ((size_t)cmp == sizeof(cur_read_batch)/sizeof(cur_read_batch[0]) || cur_read_batch[(size_t)cmp] == target[(size_t)cmp]) {
+    if ((std::size_t)cmp == sizeof(cur_read_batch)/sizeof(cur_read_batch[0]) || cur_read_batch[(std::size_t)cmp] == target[(std::size_t)cmp]) {
         return CODING_DONE;
     }
     // read coefficient data from file
-    BlockBasedImage &start = colldata->full_component_write( cmp );
+    BlockBasedImage &start = colldata->full_component_write(cmp);
     while (cur_read_batch[(int)cmp] < target[(int)cmp]) {
         int cur_read_size = std::min((int)batch_size, target[(int)cmp] - cur_read_batch[(int)cmp]);
         for (int i = 0;i < cur_read_size; ++i) {
-            size_t retval = IOUtil::ReadFull(str_in, &start.raster(cur_read_batch[(int)cmp] + i), sizeof(short) * 64);
-            if (retval != sizeof( short) * 64) {
+            std::size_t retval = IOUtil::ReadFull(str_in, &start.raster(cur_read_batch[(int)cmp] + i), sizeof(short) * 64);
+            if (retval != sizeof(short) * 64) {
                 errormessage = "Unexpected end of file blocks";
                 errorlevel = 2;
                 return CODING_ERROR;
@@ -89,6 +89,5 @@ CodingReturnValue SimpleComponentDecoder::decode_chunk(UncompressedComponents* c
     assert(false && "UNREACHABLE");
     return CODING_PARTIAL;
 }
-SimpleComponentDecoder::~SimpleComponentDecoder() {
 
-}
+SimpleComponentDecoder::~SimpleComponentDecoder() {}

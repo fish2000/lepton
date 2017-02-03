@@ -31,12 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 This file contains special classes for bitwise
 reading and writing of arrays
 */
+
 #include "../../vp8/util/memory.hh"
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
+#include <cstdlib>
+#include <cstring>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
+#include <fcntl.h>
 #include "bitops.hh"
 
 #define BUFFER_SIZE 1024 * 1024
@@ -83,7 +84,7 @@ abitwriter::abitwriter( int size , int max_file_size)
     fmem  = true;
     dsize = ( size > 0 ) ? size : adds;
     data2 = ( unsigned char* ) custom_calloc (dsize);
-    if ( data2 == NULL ) {
+    if ( data2 == nullptr ) {
         error = true;
         custom_exit(ExitCode::MALLOCED_NULL);
         return;
@@ -135,7 +136,7 @@ abytewriter::abytewriter( int size )
 	
 	dsize = ( size > 0 ) ? size : adds;
     data = aligned_alloc(dsize);
-	if ( data == NULL ) {
+	if ( data == nullptr ) {
 		error = true;
         custom_exit(ExitCode::MALLOCED_NULL);
 		return;
@@ -170,7 +171,7 @@ void abytewriter::write( unsigned char byte )
             aligned_dealloc(data);
             data = newData;
         }
-		if ( data == NULL ) {
+		if ( data == nullptr ) {
 			error = true;
             custom_exit(ExitCode::MALLOCED_NULL);
 			return;
@@ -197,7 +198,7 @@ void abytewriter::write_n( unsigned char* byte, int n )
         dsize *= 2;
         aligned_dealloc(data);
         data = newData;
-		if ( data == NULL ) {
+		if ( data == nullptr ) {
             error = true;
             custom_exit(ExitCode::MALLOCED_NULL);
 			return;
@@ -261,7 +262,7 @@ abytereader::abytereader( unsigned char* array, int size )
 	data = array;
 	lbyte = size;
 	
-	if ( ( data == NULL ) || ( lbyte == 0 ) )
+	if ( ( data == nullptr ) || ( lbyte == 0 ) )
 		eof = true;
 }
 
