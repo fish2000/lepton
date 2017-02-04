@@ -17,7 +17,7 @@ void LeptonCodec::ThreadState::decode_row(Left& left_model,
         parse_tokens(context,
                      bool_decoder_,
                      left_model,
-                     model_); //FIXME
+                     model_); /// FIXME
         int offset = image_data[middle_model.COLOR]->next(context_.at((int)middle_model.COLOR), true, curr_y);
         if (offset >= component_size_in_block) { return; }
     }
@@ -27,7 +27,7 @@ void LeptonCodec::ThreadState::decode_row(Left& left_model,
         parse_tokens(context,
                      bool_decoder_,
                      middle_model,
-                     model_); //FIXME
+                     model_); /// FIXME
         int offset = image_data[middle_model.COLOR]->next(context_.at((int)middle_model.COLOR), true, curr_y);
         if (offset >= component_size_in_block) { return; }
     }
@@ -86,9 +86,6 @@ void LeptonCodec::ThreadState::decode_row(Left& left_model,
                                                                                    right)
 #endif /// ALLOW_FOUR_COLORS
 
-
-
-
 void LeptonCodec::ThreadState::decode_row_wrapper(BlockBasedImagePerChannel<true>& image_data,
                                           		  Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                           		  int component, int curr_y) {
@@ -100,12 +97,12 @@ void LeptonCodec::ThreadState::decode_row(BlockBasedImagePerChannel<force_memory
                                           Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                           int component, int curr_y) {
     
-    std::tuple<ProbabilityTablesTuple(false, false, false)> corner(EACH_BLOCK_TYPE(false,false,false));
-    std::tuple<ProbabilityTablesTuple(true, false, false)> top(EACH_BLOCK_TYPE(true,false,false));
-    std::tuple<ProbabilityTablesTuple(false, true, true)> midleft(EACH_BLOCK_TYPE(false, true, true));
-    std::tuple<ProbabilityTablesTuple(true, true, true)> middle(EACH_BLOCK_TYPE(true,true,true));
-    std::tuple<ProbabilityTablesTuple(true, true, false)> midright(EACH_BLOCK_TYPE(true, true, false));
-    std::tuple<ProbabilityTablesTuple(false, true, false)> width_one(EACH_BLOCK_TYPE(false, true, false));
+    std::tuple<ProbabilityTablesTuple(false, false, false)> 	corner(EACH_BLOCK_TYPE(false,false,false));
+    std::tuple<ProbabilityTablesTuple(true, false, false)> 		top(EACH_BLOCK_TYPE(true,false,false));
+    std::tuple<ProbabilityTablesTuple(false, true, true)> 		midleft(EACH_BLOCK_TYPE(false, true, true));
+    std::tuple<ProbabilityTablesTuple(true, true, true)> 		middle(EACH_BLOCK_TYPE(true,true,true));
+    std::tuple<ProbabilityTablesTuple(true, true, false)> 		midright(EACH_BLOCK_TYPE(true, true, false));
+    std::tuple<ProbabilityTablesTuple(false, true, false)> 		width_one(EACH_BLOCK_TYPE(false, true, false));
     
 	context_.at(component) = image_data[component]->off_y(curr_y, num_nonzeros_.at(component).begin());
     int block_width = image_data[component]->block_width();
@@ -113,127 +110,116 @@ void LeptonCodec::ThreadState::decode_row(BlockBasedImagePerChannel<force_memory
     if (is_top_row_.at(component)) {
         is_top_row_.at(component) = false;
         switch((BlockType)component) {
-          case BlockType::Y:
-            decode_row(std::get<(int)BlockType::Y>(corner),
-                       std::get<(int)BlockType::Y>(top),
-                       std::get<(int)BlockType::Y>(top),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            break;
-          case BlockType::Cb:
-            decode_row(std::get<(int)BlockType::Cb>(corner),
-                       std::get<(int)BlockType::Cb>(top),
-                       std::get<(int)BlockType::Cb>(top),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-          case BlockType::Cr:
-            decode_row(std::get<(int)BlockType::Cr>(corner),
-                       std::get<(int)BlockType::Cr>(top),
-                       std::get<(int)BlockType::Cr>(top),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-#ifdef ALLOW_FOUR_COLORS
-          case BlockType::Ck:
-            decode_row(std::get<(int)BlockType::Ck>(corner),
-                       std::get<(int)BlockType::Ck>(top),
-                       std::get<(int)BlockType::Ck>(top),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-#endif
+			case BlockType::Y:
+	            decode_row(std::get<(int)BlockType::Y>(corner),
+	                       std::get<(int)BlockType::Y>(top),
+	                       std::get<(int)BlockType::Y>(top),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+	            break;
+			case BlockType::Cb:
+	            decode_row(std::get<(int)BlockType::Cb>(corner),
+	                       std::get<(int)BlockType::Cb>(top),
+	                       std::get<(int)BlockType::Cb>(top),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+	            break;
+			case BlockType::Cr:
+	            decode_row(std::get<(int)BlockType::Cr>(corner),
+	                       std::get<(int)BlockType::Cr>(top),
+	                       std::get<(int)BlockType::Cr>(top),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+	            break;
+	#ifdef ALLOW_FOUR_COLORS
+			case BlockType::Ck:
+	            decode_row(std::get<(int)BlockType::Ck>(corner),
+	                       std::get<(int)BlockType::Ck>(top),
+	                       std::get<(int)BlockType::Ck>(top),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
+	#endif
         }
     } else if (block_width > 1) {
         assert(curr_y); // just a sanity check that the zeroth row took the first branch
         switch((BlockType)component) {
-          case BlockType::Y:
-            decode_row(std::get<(int)BlockType::Y>(midleft),
-                       std::get<(int)BlockType::Y>(middle),
-                       std::get<(int)BlockType::Y>(midright),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-          case BlockType::Cb:
-            decode_row(std::get<(int)BlockType::Cb>(midleft),
-                       std::get<(int)BlockType::Cb>(middle),
-                       std::get<(int)BlockType::Cb>(midright),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-          case BlockType::Cr:
-            decode_row(std::get<(int)BlockType::Cr>(midleft),
-                       std::get<(int)BlockType::Cr>(middle),
-                       std::get<(int)BlockType::Cr>(midright),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
+			case BlockType::Y:
+	            decode_row(std::get<(int)BlockType::Y>(midleft),
+	                       std::get<(int)BlockType::Y>(middle),
+	                       std::get<(int)BlockType::Y>(midright),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
+			case BlockType::Cb:
+	            decode_row(std::get<(int)BlockType::Cb>(midleft),
+	                       std::get<(int)BlockType::Cb>(middle),
+	                       std::get<(int)BlockType::Cb>(midright),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
+			case BlockType::Cr:
+		        decode_row(std::get<(int)BlockType::Cr>(midleft),
+		                   std::get<(int)BlockType::Cr>(middle),
+		                   std::get<(int)BlockType::Cr>(midright),
+		                   curr_y,
+		                   image_data,
+		                   component_size_in_blocks[component]);
+				break;
 #ifdef ALLOW_FOUR_COLORS
-          case BlockType::Ck:
-            decode_row(std::get<(int)BlockType::Ck>(midleft),
-                       std::get<(int)BlockType::Ck>(middle),
-                       std::get<(int)BlockType::Ck>(midright),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
+			case BlockType::Ck:
+	            decode_row(std::get<(int)BlockType::Ck>(midleft),
+	                       std::get<(int)BlockType::Ck>(middle),
+	                       std::get<(int)BlockType::Ck>(midright),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
 #endif
         }
     } else {
         assert(curr_y); // just a sanity check that the zeroth row took the first branch
         assert(block_width == 1);
         switch((BlockType)component) {
-          case BlockType::Y:
-            decode_row(std::get<(int)BlockType::Y>(width_one),
-                       std::get<(int)BlockType::Y>(width_one),
-                       std::get<(int)BlockType::Y>(width_one),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-          case BlockType::Cb:
-            decode_row(std::get<(int)BlockType::Cb>(width_one),
-                       std::get<(int)BlockType::Cb>(width_one),
-                       std::get<(int)BlockType::Cb>(width_one),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
-          case BlockType::Cr:
-            decode_row(std::get<(int)BlockType::Cr>(width_one),
-                       std::get<(int)BlockType::Cr>(width_one),
-                       std::get<(int)BlockType::Cr>(width_one),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
+			case BlockType::Y:
+	            decode_row(std::get<(int)BlockType::Y>(width_one),
+	                       std::get<(int)BlockType::Y>(width_one),
+	                       std::get<(int)BlockType::Y>(width_one),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
+			case BlockType::Cb:
+		        decode_row(std::get<(int)BlockType::Cb>(width_one),
+		                   std::get<(int)BlockType::Cb>(width_one),
+		                   std::get<(int)BlockType::Cb>(width_one),
+		                   curr_y,
+		                   image_data,
+		                   component_size_in_blocks[component]);
+		        break;
+			case BlockType::Cr:
+	            decode_row(std::get<(int)BlockType::Cr>(width_one),
+	                       std::get<(int)BlockType::Cr>(width_one),
+	                       std::get<(int)BlockType::Cr>(width_one),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
 #ifdef ALLOW_FOUR_COLORS
-          case BlockType::Ck:
-            decode_row(std::get<(int)BlockType::Ck>(width_one),
-                       std::get<(int)BlockType::Ck>(width_one),
-                       std::get<(int)BlockType::Ck>(width_one),
-                       curr_y,
-                       image_data,
-                       component_size_in_blocks[component]);
-            
-            break;
+			case BlockType::Ck:
+	            decode_row(std::get<(int)BlockType::Ck>(width_one),
+	                       std::get<(int)BlockType::Ck>(width_one),
+	                       std::get<(int)BlockType::Ck>(width_one),
+	                       curr_y,
+	                       image_data,
+	                       component_size_in_blocks[component]);
+				break;
 #endif
         }
     }
@@ -248,7 +234,8 @@ CodingReturnValue LeptonCodec::ThreadState::vp8_decode_thread(unsigned int threa
         component_size_in_blocks[i] = colldata->component_size_in_blocks(i);
         image_data[i] = &colldata->full_component_write((BlockType)i);
     }
-    Sirikata::Array1d<uint32_t, (size_t)ColorChannel::NumBlockTypes> max_coded_heights = colldata->get_max_coded_heights();
+	
+    Sirikata::Array1d<uint32_t, (std::size_t)ColorChannel::NumBlockTypes> max_coded_heights = colldata->get_max_coded_heights();
 	
     /* deserialize each block in planar order */
     assert(luma_splits_.size() == 2); // not ready to do multiple work items on a thread yet
@@ -269,8 +256,9 @@ CodingReturnValue LeptonCodec::ThreadState::vp8_decode_thread(unsigned int threa
         
 		if (thread_id == 0) {
             colldata->worker_update_cmp_progress((BlockType)cur_row.component,
-                                                 image_data[cur_row.component]->block_width() );
+                                                 image_data[cur_row.component]->block_width());
         }
+		
         return CODING_PARTIAL;
     }
     return CODING_DONE;

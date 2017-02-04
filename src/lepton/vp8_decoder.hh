@@ -11,6 +11,7 @@ class VP8ComponentDecoder : public BaseDecoder, public VP8ComponentEncoder {
     
 	Sirikata::DecoderReader* str_in {};
     //const std::vector<uint8_t, Sirikata::JpegAllocator<uint8_t> > *file_;
+	
     Sirikata::MuxReader mux_reader_;
     std::vector<ThreadHandoff> thread_handoff_;
     Sirikata::Array1d<std::pair <Sirikata::MuxReader::ResizableByteBuffer::const_iterator,
@@ -70,12 +71,12 @@ class VP8ComponentDecoder : public BaseDecoder, public VP8ComponentEncoder {
 		
 	    virtual void decode_row(int target_thread_id,
 	                            BlockBasedImagePerChannel<true>& image_data, // FIXME: set image_data to true
-	                            Sirikata::Array1d<uint32_t,
-	                                              (uint32_t)ColorChannel::
-	                                              NumBlockTypes> component_size_in_blocks,
+	                            Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
 	                            int component,
 	                            int curr_y);
 		
-	    virtual void clear_thread_state(int thread_id, int target_thread_state, BlockBasedImagePerChannel<true>& framebuffer);
+	    virtual void clear_thread_state(int thread_id,
+										int target_thread_state,
+										BlockBasedImagePerChannel<true>& framebuffer);
 
 };

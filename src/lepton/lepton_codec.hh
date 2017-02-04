@@ -16,12 +16,14 @@ class LeptonCodec {
 			
 	        ProbabilityTablesBase model_;
 	        BoolDecoder bool_decoder_;
-	        // the splits this thread is concerned with...always 1 more than the number of work items
+	        
+			// the splits this thread is concerned with...always 1 more than the number of work items
 	        std::vector<int> luma_splits_;
-	        Sirikata::Array1d<bool, (size_t)ColorChannel::NumBlockTypes> is_top_row_;
-	        Sirikata::Array1d<BlockContext, (size_t)ColorChannel::NumBlockTypes > context_;
+	        Sirikata::Array1d<bool, (std::size_t)ColorChannel::NumBlockTypes> is_top_row_;
+	        Sirikata::Array1d<BlockContext, (std::size_t)ColorChannel::NumBlockTypes > context_;
+			
 	        //the last 2 rows of the image for each channel
-	        Sirikata::Array1d<std::vector<NeighborSummary>, (size_t)ColorChannel::NumBlockTypes> num_nonzeros_;
+	        Sirikata::Array1d<std::vector<NeighborSummary>, (std::size_t)ColorChannel::NumBlockTypes> num_nonzeros_;
 	        uint32_t decode_index_;
 	        bool is_valid_range_;
 	        
@@ -40,7 +42,7 @@ class LeptonCodec {
 	                                                  int curr_y);
 
 	        CodingReturnValue vp8_decode_thread(unsigned int thread_id,
-	                                            UncompressedComponents * const colldata);
+	                                            UncompressedComponents* const colldata);
 	    private:
 			
 	        void decode_row_wrapper(BlockBasedImagePerChannel<true>& image_data,
@@ -76,29 +78,34 @@ class LeptonCodec {
 	    template <class BlockBasedImagePerChannels>
 	    static RowSpec row_spec_from_index(uint32_t decode_index,
 	                                       BlockBasedImagePerChannels const& image_data,
-					       int mcuv, // number of mcus
+					       				   int mcuv, // number of mcus
 	                                       Sirikata::Array1d<uint32_t, (std::size_t)ColorChannel::NumBlockTypes> max_coded_heights) {
 
 	        uint32_t num_cmp = (uint32_t)ColorChannel::NumBlockTypes;
 	        uint32_t heights[(uint32_t)ColorChannel::NumBlockTypes] = {0};
 	        uint32_t component_multiple[(uint32_t)ColorChannel::NumBlockTypes] = {0};
 	        uint32_t mcu_multiple = 0;
+			
 	        for (uint32_t i = 0; i < num_cmp; ++i) {
 	            heights[i] = image_data[i] ? image_data[i]->original_height() : 0;
 	            component_multiple[i] = heights[i] / mcuv;
 	            mcu_multiple += component_multiple[i];
 	        }
-	        uint32_t mcu_row = decode_index / mcu_multiple;
-	        RowSpec retval = {0, 0, 0, 0, 0, 0, false, false, false};
+	        
+			uint32_t mcu_row = decode_index / mcu_multiple;
+	        RowSpec retval = { 0, 0, 0, 0, 0, 0, false, false, false };
+			
 	        retval.skip = false;
 	        retval.done = false;
 	        retval.mcu_row_index = mcu_row;
-	        uint32_t place_within_scan = decode_index - mcu_row * mcu_multiple;
+	        
+			uint32_t place_within_scan = decode_index - mcu_row * mcu_multiple;
 	        retval.component = num_cmp;
 	        retval.min_row_luma_y = (mcu_row) * component_multiple[0];
 	        retval.next_row_luma_y =  retval.min_row_luma_y + component_multiple[0];
 	        retval.luma_y = retval.min_row_luma_y;
-	        for (uint32_t i = num_cmp - 1; true; --i) {
+	        
+			for (uint32_t i = num_cmp - 1; true; --i) {
 	            if (place_within_scan < component_multiple[i]) {
 	                retval.component = i;
 	                retval.curr_y = mcu_row * component_multiple[i] + place_within_scan;
@@ -122,6 +129,7 @@ class LeptonCodec {
 	            } else {
 	                place_within_scan -= component_multiple[i];
 	            }
+				
 	            if (i == 0) {
 	                assert(false);
 	                retval.skip = true;
@@ -129,6 +137,7 @@ class LeptonCodec {
 	                break;
 	            }
 	        }
+			
 	        return retval;
 	    }
 	
@@ -186,14 +195,15 @@ class LeptonCodec {
 	        num_registered_workers_ = 0; // need to wait
 	        do_threading_ = do_threading;
 	        unsigned int num_threads = 1;
+			
 	        if (do_threading) {
 	            num_threads = NUM_THREADS;
 	        }
-	        thread_state_.memset(0);
+	        
+			thread_state_.memset(0);
 	        always_assert(num_threads <= MAX_NUM_THREADS);
         
 	        for (unsigned int i = 0; i < num_threads; ++i) {
-
 	            //thread_state_[i] = new ThreadState;
 	            //thread_state_[i]->model_.model().set_tables_identity();
 	            //thread_state_[i]->model_.load_probability_tables();

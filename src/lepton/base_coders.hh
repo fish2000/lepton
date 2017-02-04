@@ -21,8 +21,10 @@ namespace Sirikata {
 	class DecoderCompressionWriter;
 	class DecoderReader;
 	class DecoderWriter;
-	template <class T> class SwitchableDecompressionReader;
-	template <class T> class SwitchableCompressionWriter;
+	template <class T>
+	class SwitchableDecompressionReader;
+	template <class T>
+	class SwitchableCompressionWriter;
 }
 
 namespace IOUtil {

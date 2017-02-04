@@ -129,7 +129,7 @@ namespace TimingHarness {
 
 	uint64_t get_time_us(bool force) {
 	#ifndef _WIN32
-	    //FIXME
+	    /// FIXME
 	    if (force || !g_use_seccomp) {
 	        struct timeval val = {0,0};
 	        ::gettimeofday(&val,nullptr);
@@ -142,7 +142,7 @@ namespace TimingHarness {
 	    return 0;
 	}
 
-	const char * stage_names[] = { FOREACH_TIMING_STAGE(GENERATE_TIMING_STRING) "EOF" };
+	const char* stage_names[] = { FOREACH_TIMING_STAGE(GENERATE_TIMING_STRING) "EOF" };
 
 	void print_results() {
 	    if (!g_use_seccomp) {
@@ -593,7 +593,7 @@ void timing_operation_first_byte(char operation) {
         ::gettimeofday(&current_operation_first_byte, nullptr);
         std::fprintf(stderr,"FIRST BYTE ACHIEVED %ld %ld\n",
                 	(long)current_operation_first_byte.tv_sec,
-                	(long)current_operation_first_byte.tv_usec );
+                	(long)current_operation_first_byte.tv_usec);
     }
 
 #endif
@@ -602,9 +602,7 @@ void timing_operation_first_byte(char operation) {
 
 void timing_operation_complete(char operation) {
 #ifndef _WIN32
-    if (g_use_seccomp) {
-        return;
-    }
+    if (g_use_seccomp) { return; }
     assert(current_operation == operation);
 #ifdef _WIN32
     current_operation_end = std::clock();
@@ -1230,7 +1228,7 @@ bool recode_baseline_jpeg_wrapper() {
 #ifndef _WIN32
     if (!g_use_seccomp) {
         clock_t final = std::clock();
-        struct timeval fin = {0,0};
+        struct timeval fin = { 0, 0 };
         ::gettimeofday(&fin,nullptr);
 		
         double begin = current_operation_begin.tv_sec + (double)current_operation_begin.tv_usec / 1000000.;
@@ -1251,16 +1249,16 @@ bool recode_baseline_jpeg_wrapper() {
         std::fprintf(stderr, "Read took: %f\n", (read_done - overall_start) / (double)CLOCKS_PER_SEC);
     }
 #endif
+	
     // store last scan & restart positions
     if (!rstp.empty()) { rstp.at(rstc) = hufs; }
-	
     return retval;
 }
 
 int open_fdin(const char* ifilename,
               IOUtil::FileReader* reader,
               Sirikata::Array1d<uint8_t, 2>& header,
-			  bool *is_socket) {
+			  bool* is_socket) {
     int fdin = -1;    
     if (reader != nullptr) {
         *is_socket = reader->is_socket();
@@ -1327,8 +1325,8 @@ std::string postfix_uniq(std::string const& filename, const char* ext) {
 }
 
 
-int open_fdout(const char *ifilename,
-               IOUtil::FileWriter *writer,
+int open_fdout(const char* ifilename,
+               IOUtil::FileWriter* writer,
                Sirikata::Array1d<uint8_t, 2> fileid,
                bool force_compressed_output,
                bool* is_socket) {
@@ -1362,7 +1360,7 @@ int open_fdout(const char *ifilename,
     }
 	
     do {
-        retval = ::open(ofilename.c_str(), O_WRONLY|O_CREAT|O_TRUNC
+        retval = ::open(ofilename.c_str(), O_WRONLY | O_CREAT | O_TRUNC
 #ifdef _WIN32
             | O_BINARY
 #endif
@@ -1462,9 +1460,7 @@ void process_file(IOUtil::FileReader* reader,
                 ssize_t sent = ::write(fdout,
                                  	   lepton_data.data() + data_sent,
                                        lepton_data.size() - data_sent);
-                if (sent < 0 && errno == EINTR){
-                    continue;
-                }
+                if (sent < 0 && errno == EINTR) { continue; }
                 if (sent <= 0) {
                     custom_exit(ExitCode::SHORT_READ);
                 }
@@ -1543,6 +1539,7 @@ void process_file(IOUtil::FileReader* reader,
     if (g_use_seccomp) {
         Sirikata::installStrictSyscallFilter(true);
     }
+	
 #ifndef _WIN32
     if (g_inject_syscall_test == 1) {
         char buf[128 + 1];
@@ -1576,6 +1573,7 @@ void process_file(IOUtil::FileReader* reader,
             case socketserve:
                 timing_operation_start('c');
                 TimingHarness::timing[0][TimingHarness::TS_READ_STARTED] = TimingHarness::get_time_us();
+				
                 {
                     std::vector<uint8_t, Sirikata::JpegAllocator<uint8_t>> jpeg_file_raw_bytes;
                     unsigned int jpg_ident_offset = 2;
@@ -1610,6 +1608,7 @@ void process_file(IOUtil::FileReader* reader,
                                       std::move(luma_row_offsets),
                                       jpeg_file_raw_bytes.empty() ? nullptr : &jpeg_file_raw_bytes));
                 }
+				
                 timing_operation_complete('c');
                 break;
 
@@ -1906,6 +1905,7 @@ unsigned char read_fixed_ujpg_header() {
 	
     unsigned char num_threads_hint = header[2];
     always_assert(num_threads_hint != 0);
+	
     if (num_threads_hint < NUM_THREADS && num_threads_hint != 0) {
         NUM_THREADS = num_threads_hint;
     }
@@ -1943,19 +1943,17 @@ bool check_file(int fd_in, int fd_out, uint32_t max_file_size, bool force_zlib0,
         NUM_THREADS = std::min(NUM_THREADS, (unsigned int)max_encode_threads);
         // open output stream, check for errors
         ujg_out = writer;
-    } else if ( ( ( fileid[0] == ujg_header[0] ) && ( fileid[1] == ujg_header[1] ) )
-              || ( ( fileid[0] == lepton_header[0] ) && ( fileid[1] == lepton_header[1] ) )
-              || ( ( fileid[0] == zlepton_header[0] ) && ( fileid[1] == zlepton_header[1] ) ) ) {
+    } else if (((fileid[0] == ujg_header[0]) && (fileid[1] == ujg_header[1]))
+              || ((fileid[0] == lepton_header[0]) && (fileid[1] == lepton_header[1]))
+              || ((fileid[0] == zlepton_header[0]) && (fileid[1] == zlepton_header[1]))) {
         
 		str_in = reader;
         bool compressed_output = (fileid[0] == zlepton_header[0]) && (fileid[1] == zlepton_header[1]);
         compressed_output = compressed_output || g_force_zlib0_out || force_zlib0;
         
 		// file is UJG
-        filetype = (( fileid[0] == ujg_header[0] ) && ( fileid[1] == ujg_header[1] ) ) ? UJG : LEPTON;
-		
-        std::function<void(Sirikata::DecoderWriter*, size_t file_size)> known_size_callback = &nop;
-		
+        filetype = ((fileid[0] == ujg_header[0]) && (fileid[1] == ujg_header[1])) ? UJG : LEPTON;
+        std::function<void(Sirikata::DecoderWriter*, std::size_t file_size)> known_size_callback = &nop;
         Sirikata::DecoderWriter* write_target = writer;
 		
         if (compressed_output) {
@@ -2086,7 +2084,7 @@ bool read_jpeg(std::vector<std::pair<uint32_t, uint32_t>>* huff_input_offsets, i
                         write_byte_bill(Billing::DELIMITERS, false, 2);
                         cpos++;
                         crst++;
-                        while (rst_cnt.size() <= (size_t)scnc) {
+                        while (rst_cnt.size() <= (std::size_t)scnc) {
                             rst_cnt.push_back(0);
                         }
                         ++rst_cnt.at(scnc);
@@ -2538,7 +2536,7 @@ MergeJpegStreamingStatus merge_jpeg_streaming(MergeJpegProgress* stored_progress
 		*/
         
 		std::fprintf(stderr, "Read took: %f\n",
-                	(read_done - overall_start)/(double)CLOCKS_PER_SEC);
+                	(read_done - overall_start) / (double)CLOCKS_PER_SEC);
     }
 #endif
 	
@@ -3664,7 +3662,7 @@ bool write_ujpg(std::vector<ThreadHandoff> row_thread_handoffs,
             prefix_grbs = row_thread_handoffs[0].segment_size - start_byte;
             if (row_thread_handoffs.size() > 1) {
                 if (prefix_grbs) {
-                    --prefix_grbs; //FIXME why is this ?!
+                    --prefix_grbs; /// FIXME why is this ?!
                 }
             }
         } else {
@@ -3778,7 +3776,7 @@ bool write_ujpg(std::vector<ThreadHandoff> row_thread_handoffs,
 		/*
         if (i + 1 == selected_splits.size()) {
             int tmp = selected_splits[i].segment_size;
-            selected_splits[i].segment_size = jpgfilesize - row_thread_handoffs[ beginning_of_range ].segment_size;
+            selected_splits[i].segment_size = jpgfilesize - row_thread_handoffs[beginning_of_range].segment_size;
             std::fprintf(stderr, "Split size was %x and is %x - %x = %x\n", tmp, jpgfilesize, row_thread_handoffs[ beginning_of_range ].segment_size, selected_splits[i].segment_size);
         }
 		*/
@@ -4091,8 +4089,8 @@ bool read_ujpg(void) {
         // this is a single pad bit that is implied to have all the same values
         header_reader.Read(reinterpret_cast<unsigned char*>(&padbit), 1);
         if (!(padbit == 0 || padbit == 1 ||padbit == -1)) {
-            while (::write(2, "Legacy Padbit must be 0, 1 or -1\n", strlen("Legacy Padbit must be 0, 1 or -1\n")) < 0 &&
-				   errno == EINTR) {}
+            while (::write(2, "Legacy Padbit must be 0, 1 or -1\n",
+				  std::strlen("Legacy Padbit must be 0, 1 or -1\n")) < 0 && errno == EINTR) {}
             custom_exit(ExitCode::STREAM_INCONSISTENT);
         }
 		// all 6 bits set
@@ -4104,6 +4102,7 @@ bool read_ujpg(void) {
     }
 	
     std::vector<ThreadHandoff> thread_handoff;
+	
     // read further recovery information if any
     while (ReadFull(&header_reader, ujpg_mrk, 3) == 3) {
         // check marker
@@ -4111,13 +4110,13 @@ bool read_ujpg(void) {
             rst_cnt_set = true;
             ReadFull(&header_reader, ujpg_mrk, 4);
             rst_cnt.resize(LEtoUint32(ujpg_mrk));
-            for (size_t i = 0; i < rst_cnt.size(); ++i) {
+            for (std::size_t i = 0; i < rst_cnt.size(); ++i) {
                 ReadFull(&header_reader, ujpg_mrk, 4);
                 rst_cnt.at(i) = LEtoUint32(ujpg_mrk);
             }
         } else if (std::memcmp(ujpg_mrk, "HHX", 2) == 0) {
 			// only look at first two bytes
-            size_t to_alloc = ThreadHandoff::get_remaining_data_size_from_two_bytes(ujpg_mrk + 1) + 2;
+            std::size_t to_alloc = ThreadHandoff::get_remaining_data_size_from_two_bytes(ujpg_mrk + 1) + 2;
             if (to_alloc) {
                 std::vector<unsigned char> data(to_alloc);
                 data[0] = ujpg_mrk[1];
@@ -4181,6 +4180,7 @@ bool read_ujpg(void) {
             return false;
         }
     }
+	
     write_byte_bill(Billing::HEADER,
                     false,
                     2 + hdrs + prefix_grbs + grbs);
@@ -4188,9 +4188,9 @@ bool read_ujpg(void) {
                     true,
                     compressed_header_buffer.size());
 
-    ReadFull(str_in, ujpg_mrk, 3) ;
+    ReadFull(str_in, ujpg_mrk, 3);
+	
     write_byte_bill(Billing::HEADER, true, 3);
-
     write_byte_bill(Billing::DELIMITERS, true, 4 * NUM_THREADS); // trailing vpx_encode bits
     write_byte_bill(Billing::HEADER, true, 4); //trailing size
 
@@ -4198,10 +4198,12 @@ bool read_ujpg(void) {
         always_assert(false && "CMP must be present (uncompressed) in the file");
         return false; // not a JPG
     }
+	
     colldata.signal_worker_should_begin();
     g_decoder->initialize(str_in, thread_handoff);
     colldata.start_decoder(g_decoder);
-    return true;
+    
+	return true;
 }
 
 
@@ -4216,8 +4218,8 @@ bool reset_buffers(void) {
     // -- free buffers --
 
     // free buffers & set pointers nullptr
-    if (hdrdata  != nullptr) { 					aligned_dealloc(hdrdata); }
-    if (huffdata != nullptr) { 					aligned_dealloc(huffdata); }
+    if (hdrdata  != nullptr) { 						aligned_dealloc(hdrdata); }
+    if (huffdata != nullptr) { 						aligned_dealloc(huffdata); }
     if (grbgdata != nullptr && grbgdata != EOI) { 	aligned_dealloc(grbgdata); }
 	
     rst_err.clear();

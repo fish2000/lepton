@@ -4,31 +4,31 @@
 #include "../vp8/util/aligned_block.hh"
 #include "../vp8/util/mm_mullo_epi32.hh"
 
-namespace idct_local{
-enum {
-    w1 = 2841, // 2048*sqrt(2)*cos(1*pi/16)
-    w2 = 2676, // 2048*sqrt(2)*cos(2*pi/16)
-    w3 = 2408, // 2048*sqrt(2)*cos(3*pi/16)
-    w5 = 1609, // 2048*sqrt(2)*cos(5*pi/16)
-    w6 = 1108, // 2048*sqrt(2)*cos(6*pi/16)
-    w7 = 565,  // 2048*sqrt(2)*cos(7*pi/16)
+namespace idct_local {
+	enum {
+	    w1 = 2841, // 2048*sqrt(2)*cos(1*pi/16)
+	    w2 = 2676, // 2048*sqrt(2)*cos(2*pi/16)
+	    w3 = 2408, // 2048*sqrt(2)*cos(3*pi/16)
+	    w5 = 1609, // 2048*sqrt(2)*cos(5*pi/16)
+	    w6 = 1108, // 2048*sqrt(2)*cos(6*pi/16)
+	    w7 = 565,  // 2048*sqrt(2)*cos(7*pi/16)
 
-    w1pw7 = w1 + w7,
-    w1mw7 = w1 - w7,
-    w2pw6 = w2 + w6,
-    w2mw6 = w2 - w6,
-    w3pw5 = w3 + w5,
-    w3mw5 = w3 - w5,
+	    w1pw7 = w1 + w7,
+	    w1mw7 = w1 - w7,
+	    w2pw6 = w2 + w6,
+	    w2mw6 = w2 - w6,
+	    w3pw5 = w3 + w5,
+	    w3mw5 = w3 - w5,
 
-    r2 = 181 // 256/sqrt(2)
-};
+	    r2 = 181 // 256/sqrt(2)
+	};
 }
 
 #if (!defined(__SSE2__)) && !(_M_IX86_FP >= 1)
-static void
-idct_scalar(const AlignedBlock &block, const uint16_t q[64], int16_t outp[64], bool ignore_dc) {
+static void idct_scalar(AlignedBlock const& block, const uint16_t q[64], int16_t outp[64], bool ignore_dc) {
     int32_t intermed[64];
     using namespace idct_local;
+	
     // Horizontal 1-D IDCT.
     for (int y = 0; y < 8; ++y) {
         int y8 = y * 8;
@@ -41,6 +41,7 @@ idct_scalar(const AlignedBlock &block, const uint16_t q[64], int16_t outp[64], b
         int32_t x5 = block.coefficients_raster(y8 + 7) * q[y8 + 7];
         int32_t x6 = block.coefficients_raster(y8 + 5) * q[y8 + 5];
         int32_t x7 = block.coefficients_raster(y8 + 3) * q[y8 + 3];
+		
         // If all the AC components are zero, then the IDCT is trivial.
         if (x1 ==0 && x2 == 0 && x3 == 0 && x4 == 0 && x5 == 0 && x6 == 0 && x7 == 0) {
             int32_t dc = (x0 - 128) >> 8; // coefficients[0] << 3
@@ -148,51 +149,54 @@ idct_scalar(const AlignedBlock &block, const uint16_t q[64], int16_t outp[64], b
         outp[8*6+x] = (y3 - y2) >> 11;
         outp[8*7+x] = (y7 - y1) >> 11;
     }
+	
     for (int i = 0; i < 64;++i) {
         //outp[i]>>=3;
     }
 }
 #else /* At least SSE2 is available { */
 
-template<int which_vec, int offset, int stride> __m128i vget_raster(const AlignedBlock&block) {
+template <int which_vec, int offset, int stride>
+__m128i vget_raster(AlignedBlock const& block) {
     return _mm_set_epi32(block.coefficients_raster(which_vec + 3 * stride + offset),
                          block.coefficients_raster(which_vec + 2 * stride + offset),
                          block.coefficients_raster(which_vec + 1 * stride + offset),
                          block.coefficients_raster(which_vec + offset));
 }
-template<int offset, int stride> __m128i vquantize(int which_vec, __m128i vec, const uint16_t q[64]) {
+
+template <int offset, int stride>
+__m128i vquantize(int which_vec, __m128i vec, const uint16_t q[64]) {
     return _mm_mullo_epi32(vec, _mm_set_epi32(q[which_vec + 3 * stride + offset],
                                               q[which_vec + 2 * stride + offset],
                                               q[which_vec + 1 * stride + offset],
                                               q[which_vec + offset]));
 }
 
-static __m128i
-epi32l_to_epi16(__m128i lowvec) {
+static __m128i epi32l_to_epi16(__m128i lowvec) {
     return _mm_shuffle_epi8(lowvec, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1,
                                                  0xd, 0xc, 0x9, 0x8, 0x5, 0x4, 0x1, 0x0));
 }
 
-#define TRANSPOSE_128i(row0, row1, row2, row3, ocol0, ocol1, ocol2, ocol3) \
-    do { \
-            __m128i intermed0 = _mm_unpacklo_epi32(row0, row1); \
-            __m128i intermed1 = _mm_unpacklo_epi32(row2, row3); \
-            __m128i intermed2 = _mm_unpackhi_epi32(row0, row1); \
-            __m128i intermed3 = _mm_unpackhi_epi32(row2, row3); \
-            ocol0 = _mm_unpacklo_epi64(intermed0, intermed1); \
-            ocol1 = _mm_unpackhi_epi64(intermed0, intermed1); \
-            ocol2 = _mm_unpacklo_epi64(intermed2, intermed3); \
-            ocol3 = _mm_unpackhi_epi64(intermed2, intermed3); \
-    }while(0)
+#define TRANSPOSE_128i(row0, row1, row2, row3, ocol0, ocol1, ocol2, ocol3) 		\
+    do { 																		\
+            __m128i intermed0 = _mm_unpacklo_epi32(row0, row1); 				\
+            __m128i intermed1 = _mm_unpacklo_epi32(row2, row3); 				\
+            __m128i intermed2 = _mm_unpackhi_epi32(row0, row1); 				\
+            __m128i intermed3 = _mm_unpackhi_epi32(row2, row3); 				\
+            ocol0 = _mm_unpacklo_epi64(intermed0, intermed1); 					\
+            ocol1 = _mm_unpackhi_epi64(intermed0, intermed1); 					\
+            ocol2 = _mm_unpacklo_epi64(intermed2, intermed3); 					\
+            ocol3 = _mm_unpackhi_epi64(intermed2, intermed3); 					\
+    } while (0)
 
 
-static void
-idct_sse(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
+static void idct_sse(AlignedBlock const& block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
     
     char vintermed_storage[64 * sizeof(int32_t) + 16];
     // align intermediate storage to 16 bytes
-    int32_t *vintermed = (int32_t*) (vintermed_storage + 16 - ((vintermed_storage - (char*)nullptr) &0xf));
+    int32_t* vintermed = (int32_t*)(vintermed_storage + 16 - ((vintermed_storage - (char*)nullptr) &0xf));
     using namespace idct_local;
+	
     // Horizontal 1-D IDCT.
     for (int yvec = 0; yvec < 64; yvec += 32) {
         __m128i xv0, xv1, xv2, xv3, xv4, xv5, xv6, xv7, xv8;
@@ -223,6 +227,7 @@ idct_sse(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], boo
             xv6 = vget_raster<32, 5, 8>(block);
             xv7 = vget_raster<32, 3, 8>(block);
         }
+		
         xv0 = _mm_add_epi32(_mm_slli_epi32(vquantize<0, 8>(yvec, xv0, q), 11),
                             _mm_set1_epi32(128));
         
@@ -275,13 +280,16 @@ idct_sse(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], boo
              row1 = _mm_srai_epi32(_mm_sub_epi32(xv0, xv4), 8),
              row2 = _mm_srai_epi32(_mm_sub_epi32(xv3, xv2), 8),
              row3 = _mm_srai_epi32(_mm_sub_epi32(xv7, xv1), 8)) {
-            __m128i col0, col1, col2, col3;
+            
+			__m128i col0, col1, col2, col3;
+			
             TRANSPOSE_128i(row0, row1, row2, row3, col0, col1, col2, col3);
 
             _mm_store_si128((__m128i*)(vintermed + index + yvec), col0);
             _mm_store_si128((__m128i*)(vintermed + index + 8 + yvec), col1);
             _mm_store_si128((__m128i*)(vintermed + index + 16 + yvec), col2);
             _mm_store_si128((__m128i*)(vintermed + index + 24 + yvec), col3);
+			
             if (index == 4) {
                 break; // only iterate twice
             }
@@ -349,27 +357,28 @@ idct_sse(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], boo
 }
 
 
-#define vget_raster256(offset, stride, block) \
-    _mm256_set_epi32(block.coefficients_raster(7 * stride + offset), \
-                            block.coefficients_raster(6 * stride + offset), \
-                            block.coefficients_raster(5 * stride + offset), \
-                            block.coefficients_raster(4 * stride + offset), \
-                            block.coefficients_raster(3 * stride + offset), \
-                         block.coefficients_raster(2 * stride + offset), \
-                         block.coefficients_raster(1 * stride + offset), \
-                         block.coefficients_raster(offset))
+#define vget_raster256(offset, stride, block) 							\
+    _mm256_set_epi32(block.coefficients_raster(7 * stride + offset), 	\
+                     block.coefficients_raster(6 * stride + offset), 	\
+                     block.coefficients_raster(5 * stride + offset), 	\
+                     block.coefficients_raster(4 * stride + offset), 	\
+                     block.coefficients_raster(3 * stride + offset), 	\
+                     block.coefficients_raster(2 * stride + offset), 	\
+                     block.coefficients_raster(1 * stride + offset), 	\
+                     block.coefficients_raster(offset))
 
-#define vquantize256(offset, stride, vec, q) \
-    _mm256_mullo_epi32(vec, _mm256_set_epi32(q[7 * stride + offset], \
-                                                    q[6 * stride + offset], \
-                                                    q[5 * stride + offset], \
-                                                    q[4 * stride + offset], \
-                                                    q[3 * stride + offset], \
-                                                    q[2 * stride + offset], \
-                                                    q[1 * stride + offset], \
-                                                    q[offset]))
+#define vquantize256(offset, stride, vec, q) 							\
+    _mm256_mullo_epi32(vec, _mm256_set_epi32(q[7 * stride + offset], 	\
+                                             q[6 * stride + offset], 	\
+                                             q[5 * stride + offset], 	\
+                                             q[4 * stride + offset], 	\
+                                             q[3 * stride + offset], 	\
+                                             q[2 * stride + offset], 	\
+                                             q[1 * stride + offset], 	\
+                                             q[offset]))
 
 #define m256_set_m128i(a,b) _mm256_insertf128_si256(_mm256_castsi128_si256(b), a, 1)
+																  
 #define m256_to_epi16(vec) \
     _mm_or_si128(_mm_shuffle_epi8(_mm256_extractf128_si256(vec, 0), _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, \
                                                    0xd, 0xc, 0x9, 0x8, 0x5, 0x4, 0x1, 0x0)), \
@@ -386,14 +395,16 @@ __m128i m256_to_epi16(__m256i vec) {
     return _mm_or_si128(lopacked, hipacked);
 
     }*/
+
 #ifdef __AVX2__
-static void
-idct_avx(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
+static void idct_avx(AlignedBlock const& block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
     // align intermediate storage to 16 bytes
     using namespace idct_local;
-    // Horizontal 1-D IDCT.
+    
+	// Horizontal 1-D IDCT.
     __m256i col0, col1, col2, col3, col4, col5, col6, col7;
-    {
+    
+	{
         __m256i xv0, xv1, xv2, xv3, xv4, xv5, xv6, xv7, xv8;
         xv0 = vget_raster256(0, 8, block);
         xv1 = vget_raster256(4, 8, block);
@@ -602,8 +613,7 @@ idct_avx(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], boo
 #endif
 #endif /* } SSE2 or higher is available */
 
-void
-idct(const AlignedBlock &block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
+void idct(AlignedBlock const& block, const uint16_t q[64], int16_t voutp[64], bool ignore_dc) {
 #ifdef __AVX2__
     idct_avx(block, q, voutp, ignore_dc);
 #else

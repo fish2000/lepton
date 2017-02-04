@@ -21,8 +21,7 @@ ValidationContinuation validateAndCompress(int* reader,
                                            std::size_t end_byte,
                                            ExitCode* validation_exit_code,
                                            Sirikata::MuxReader::ResizableByteBuffer* lepton_data,
-                                           int argc,
-                                           const char** argv,
+                                           int argc, const char** argv,
                                            bool is_socket) {
 #ifdef _WIN32
     std::vector<const char*> args;
@@ -41,12 +40,14 @@ ValidationContinuation validateAndCompress(int* reader,
             args.push_back(argv[i]);
         }
     }
+	
     args.push_back("-"); // read from stdin, write to stdout
     //args.push_back("/Users/daniel/Source/Repos/lepton/images/iphone.jpg");
     //args.push_back("/Users/daniel/Source/Repos/lepton/test.lep");
     auto encode_pipes = IOUtil::start_subprocess(args.size(), &args[0], false);
     lepton_data->reserve(4096 * 1024);
     std::size_t size = 0;
+	
     Sirikata::Array1d<uint8_t, 16> md5 = IOUtil::transfer_and_md5(header,
         start_byte,
         end_byte,
@@ -56,10 +57,13 @@ ValidationContinuation validateAndCompress(int* reader,
         &size,
         lepton_data,
         is_socket);
-    auto decode_pipes = IOUtil::start_subprocess(args.size(), &args[0], false);
-    std::size_t roundtrip_size = 0;
+    
+	auto decode_pipes = IOUtil::start_subprocess(args.size(), &args[0], false);
+    
+	std::size_t roundtrip_size = 0;
     Sirikata::Array1d<uint8_t, 16> rtmd5;
-    if (header.size() <= lepton_data->size()) {
+    
+	if (header.size() <= lepton_data->size()) {
         // validate with decode
         rtmd5 = IOUtil::send_and_md5_result(
             lepton_data->data(),
@@ -68,7 +72,8 @@ ValidationContinuation validateAndCompress(int* reader,
             decode_pipes.pipe_stdout,
             &roundtrip_size);
     }
-    if (roundtrip_size != size || memcmp(&md5[0], &rtmd5[0], md5.size()) != 0) {
+	
+    if (roundtrip_size != size || std::memcmp(&md5[0], &rtmd5[0], md5.size()) != 0) {
         std::fprintf(stderr, "Input Size %lu != Roundtrip Size %lu\n", (unsigned long)size, (unsigned long)roundtrip_size);
         for (std::size_t i = 0; i < md5.size(); ++i) {
             std::fprintf(stderr, "%02x", md5[i]);
@@ -90,36 +95,43 @@ ValidationContinuation validateAndCompress(int* reader,
     while (::pipe(lepton_output_pipes) < 0 && errno == EINTR) {}
     pid_t encode_pid;
     pid_t decode_pid;
+	
     if ((encode_pid = ::fork()) == 0) { // could also fork/exec here
         // not yet open -- we will exit before accessed while(close(*fwriter) < 0 && errno == EINTR){}
         if (*writer != -1 && *writer != *reader) {
-                while (::close(*writer) < 0 && errno == EINTR) {}
+			while (::close(*writer) < 0 && errno == EINTR) {}
         }
+		
         while (::close(*reader) < 0 && errno == EINTR) {}
-        *reader = jpeg_input_pipes[0];
+        
+		*reader = jpeg_input_pipes[0];
         *writer = lepton_output_pipes[1];
         while (::close(jpeg_input_pipes[1]) < 0 && errno == EINTR) {}
         while (::close(lepton_output_pipes[0]) < 0 && errno == EINTR) {}
-        return ValidationContinuation::CONTINUE_AS_JPEG;
+        
+		return ValidationContinuation::CONTINUE_AS_JPEG;
     }
+	
     while (::close(jpeg_input_pipes[0]) < 0 && errno == EINTR) {}
     while (::close(lepton_output_pipes[1]) < 0 && errno == EINTR) {}
-
     while (::pipe(lepton_roundtrip_send) < 0 && errno == EINTR) {}
     while (::pipe(jpeg_roundtrip_recv) < 0 && errno == EINTR) {}
+	
     // we wanna fork the decode here before we allocate 4096 * 1024 bytes here
     if ((decode_pid = ::fork()) == 0) { // could also fork/exec here
         if (*writer != -1 && *writer != *reader) {
-                while (::close(*writer) < 0 && errno == EINTR) {}
+			while (::close(*writer) < 0 && errno == EINTR) {}
         }
 
         while (::close(*reader) < 0 && errno == EINTR) {}
+		
         // not yet open -- we will exit before accessed while(close(*fwriter) < 0 && errno == EINTR){}
         while (::close(jpeg_input_pipes[1]) < 0 && errno == EINTR) {}
         while (::close(lepton_output_pipes[0]) < 0 && errno == EINTR) {}
 
         *reader = lepton_roundtrip_send[0];
         *writer = jpeg_roundtrip_recv[1];
+		
         while (::close(lepton_roundtrip_send[1]) < 0 && errno == EINTR) {}
         while (::close(jpeg_roundtrip_recv[0]) < 0 && errno == EINTR) {}
 
@@ -128,7 +140,6 @@ ValidationContinuation validateAndCompress(int* reader,
 	
     while (::close(lepton_roundtrip_send[0]) < 0 && errno == EINTR) {}
     while (::close(jpeg_roundtrip_recv[1]) < 0 && errno == EINTR) {}
-
 
     lepton_data->reserve(4096 * 1024);
     size_t size = 0;
@@ -151,7 +162,7 @@ ValidationContinuation validateAndCompress(int* reader,
             std::exit(exit_code);
         }
     } else if (WIFSIGNALED(status)) {
-        raise(WTERMSIG(status));
+        ::raise(WTERMSIG(status));
     }
 	
     std::size_t roundtrip_size = 0;
@@ -180,6 +191,7 @@ ValidationContinuation validateAndCompress(int* reader,
     }
     
     status = 0;
+	
     while (::waitpid(decode_pid, &status, 0) < 0 && errno == EINTR) {} // wait on encode
     if (WIFEXITED(status)) {
         int exit_code = WEXITSTATUS(status);
@@ -187,7 +199,7 @@ ValidationContinuation validateAndCompress(int* reader,
             std::exit(exit_code);
         }
     } else if (WIFSIGNALED(status)) {
-        raise(WTERMSIG(status));
+        ::raise(WTERMSIG(status));
     }
 #endif
     *validation_exit_code = ExitCode::SUCCESS;

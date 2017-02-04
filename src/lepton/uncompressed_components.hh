@@ -17,8 +17,8 @@
 #include "component_info.hh"
 #include "../vp8/model/color_context.hh"
 #include "../vp8/util/block_based_image.hh"
-struct componentInfo;
 
+struct componentInfo;
 class Block;
 
 class UncompressedComponents {
@@ -26,14 +26,18 @@ class UncompressedComponents {
     typedef int CounterType;
     
 	class ExtendedComponentInfo {
-        ExtendedComponentInfo(ExtendedComponentInfo const&); // not implemented
+        
+		ExtendedComponentInfo(ExtendedComponentInfo const&); // not implemented
         ExtendedComponentInfo operator=(ExtendedComponentInfo const&); // not implemented
+		
 	    public:
+			
 	        BlockBasedImage component_;
 	        CounterType dpos_block_progress_;
 	        componentInfo info_;
 	        int trunc_bcv_; // the number of vertical components in this (truncated) image
 	        int trunc_bc_;
+			
 	        ExtendedComponentInfo()
 				:dpos_block_progress_(0)
 	            ,trunc_bcv_(0)
@@ -67,19 +71,23 @@ class UncompressedComponents {
 	
 	public:
 
-	    UncompressedComponents() : coefficient_position_progress_(0), bit_progress_(0), worker_start_read_signal_(0) {
-	        decoder_ = nullptr;
-	        reserved_ = 0;
-	        mcuh_ = 0;
-	        mcuv_ = 0;
-	        cmpc_ = 0;
-	    }
+	    UncompressedComponents()
+			:coefficient_position_progress_(0)
+			,bit_progress_(0)
+			,worker_start_read_signal_(0)
+			{
+		        decoder_ = nullptr;
+		        reserved_ = 0;
+		        mcuh_ = 0;
+		        mcuv_ = 0;
+		        cmpc_ = 0;
+		    }
 		
 	    unsigned short* get_quantization_tables(BlockType component) const {
 	        return header_[(int)component].info_.qtable;
 	    }
 		
-	    Sirikata::Array1d<uint32_t, (size_t)ColorChannel::NumBlockTypes> get_max_coded_heights() const{
+	    Sirikata::Array1d<uint32_t, (size_t)ColorChannel::NumBlockTypes> get_max_coded_heights() const {
 	        Sirikata::Array1d<uint32_t, (size_t)ColorChannel::NumBlockTypes> retval;
 	        retval.memset(0);
 	        for (int i = 0; i < cmpc_ && i < (int)ColorChannel::NumBlockTypes; ++i) {
@@ -121,7 +129,7 @@ class UncompressedComponents {
 	        header_[(int)cmp].dpos_block_progress_ = dpos_block_progress_;
 	    }
 	    
-		void start_decoder(BaseDecoder *decoder) {
+		void start_decoder(BaseDecoder* decoder) {
 	        decoder_ = decoder;
 	    }
 		
@@ -163,8 +171,8 @@ class UncompressedComponents {
 	        if (cmpc > (int)ColorChannel::NumBlockTypes) {
 	            cmpc = (int)ColorChannel::NumBlockTypes;
 	            //abort here: we probably can't support this kind of image
-	            const char * errmsg = "We only support 3 color channels or fewer\n";
-	            int err = write(2, errmsg, strlen(errmsg));
+	            const char* errmsg = "We only support 3 color channels or fewer\n";
+	            int err = ::write(2, errmsg, strlen(errmsg));
 	            (void)err;
 	            assert(cmpc <= (int)ColorChannel::NumBlockTypes && "We only support 3 color channels or less");
 	            custom_exit(ExitCode::UNSUPPORTED_4_COLORS);
@@ -176,7 +184,7 @@ class UncompressedComponents {
 	            header_[cmp].trunc_bc_ = cmpinfo[cmp].bc;
 	        }
 	        if (!memory_optimized_image) {
-	            for (int cmp = 0; cmp < (int)sizeof(header_)/(int)sizeof(header_[0]) && cmp < cmpc; cmp++) {
+	            for (int cmp = 0; cmp < (int)sizeof(header_) / (int)sizeof(header_[0]) && cmp < cmpc; cmp++) {
 	                allocate_channel_framebuffer(cmp,
 	                                             &this->header_[cmp].component_,
 	                                             memory_optimized_image);
@@ -278,14 +286,13 @@ class UncompressedComponents {
 	    }
 	    
 		signed short at_nosync(BlockType cmp, int bpos, int dpos) const {
-	        return header_[(int)cmp].component_.
-	            raster(dpos).coefficients_zigzag(bpos);
+	        return header_[(int)cmp].component_.raster(dpos).coefficients_zigzag(bpos);
 	    }
 	    
 		// return the minimum luma multiple for full mcu splits in luma
 	    int min_vertical_luma_multiple() const;
 	    int min_vertical_cmp_multiple(int cmp) const;
-	    int min_vertical_extcmp_multiple(const ExtendedComponentInfo *info) const;
+	    int min_vertical_extcmp_multiple(const ExtendedComponentInfo* info) const;
 	    
 		int block_height(const int cmp) const {
 	        return bcv_(cmp);

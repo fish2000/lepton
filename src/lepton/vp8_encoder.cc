@@ -28,38 +28,68 @@
 using namespace std;
 
 typedef Sirikata::MuxReader::ResizableByteBuffer ResizableByteBuffer;
+
 void printContext(FILE* fp) {
 #ifdef ANNOTATION_ENABLED
-    for (int cm= 0;cm< 3;++cm) {
-        for (int y = 0;y < Context::H/8; ++y) {
-            for (int x = 0;x < Context::W/8; ++x) {
+    for (int cm = 0; cm < 3; ++cm) {
+        for (int y = 0; y < Context::H / 8; ++y) {
+            for (int x = 0;x < Context::W / 8; ++x) {
                 for (int by = 0; by < 8; ++by){
                     for (int bx = 0; bx < 8; ++bx) {
-                        for (int ctx = 0;ctx < NUMCONTEXT;++ctx) {
+                        for (int ctx = 0; ctx < NUMCONTEXT; ++ctx) {
                             for (int dim = 0; dim < 3; ++dim) {
                                 int val = 0;
                                 val = gctx->p[cm][y][x][by][bx][ctx][dim];
-                                const char *nam = "UNKNOWN";
+                                const char* nam = "UNKNOWN";
                                 switch (ctx) {
-                                  case ZDSTSCAN:nam = "ZDSTSCAN";break;
-                                  case ZEROS7x7:nam = "ZEROS7x7";break;
-                                  case EXPDC:nam = "EXPDC";break;
-                                  case RESDC:nam = "RESDC";break;
-                                  case SIGNDC:nam = "SIGNDC";break;
-                                  case EXP7x7:nam = "EXP7x7";break;
-                                  case RES7x7:nam = "RES7x7";break;
-                                  case SIGN7x7:nam = "SIGN7x7";break;
-                                  case ZEROS1x8:nam = "ZEROS1x8";break;
-                                  case ZEROS8x1:nam = "ZEROS8x1";break;
-                                  case EXP8:nam = "EXP8";break;
-                                  case THRESH8: nam = "THRESH8"; break;
-                                  case RES8:nam = "RES8";break;
-                                  case SIGN8:nam = "SI#include "emmintrin.h"GN8";break;
-                                  default:break;
+									case ZDSTSCAN:
+									  	nam = "ZDSTSCAN";
+										break;
+									case ZEROS7x7:
+								  		nam = "ZEROS7x7";
+										break;
+									case EXPDC:
+								  		nam = "EXPDC";
+										break;
+									case RESDC:
+										nam = "RESDC";
+										break;
+									case SIGNDC:
+										nam = "SIGNDC";
+										break;
+									case EXP7x7:
+										nam = "EXP7x7";
+										break;
+									case RES7x7:
+										nam = "RES7x7";
+										break;
+									case SIGN7x7:
+										nam = "SIGN7x7";
+										break;
+									case ZEROS1x8:
+								  		nam = "ZEROS1x8";
+										break;
+									case ZEROS8x1:
+								  		nam = "ZEROS8x1";
+										break;
+									case EXP8:
+										nam = "EXP8";
+										break;
+									case THRESH8:
+								  		nam = "THRESH8";
+										break;
+									case RES8:
+										nam = "RES8";
+										break;
+									case SIGN8:
+										nam = "SIGN8";
+										break;
+									default:
+								  		break;
                                 }
                                 if (val != -1 && ctx != ZDSTSCAN) {
-                                    fprintf(fp, "col[%02d] y[%02d]x[%02d] by[%02d]x[%02d] [%s][%d] = %d\n",
-                                            cm, y, x, by, bx, nam, dim, val);
+                                    std::fprintf(fp, "col[%02d] y[%02d]x[%02d] by[%02d]x[%02d] [%s][%d] = %d\n",
+                                         	   	 cm, y, x, by, bx, nam, dim, val);
                                 }
                             }
                         }
@@ -78,8 +108,7 @@ VP8ComponentEncoder::VP8ComponentEncoder(bool do_threading)
 CodingReturnValue VP8ComponentEncoder::encode_chunk(const UncompressedComponents* input,
                                                     IOUtil::FileWriter* output,
                                                     const ThreadHandoff* selected_splits,
-                                                    unsigned int num_selected_splits)
-{
+                                                    unsigned int num_selected_splits) {
     return vp8_full_encoder(input, output, selected_splits, num_selected_splits);
 }
 
@@ -91,7 +120,7 @@ void VP8ComponentEncoder::process_row(ProbabilityTablesBase& pt,
                                       int curr_y,
                                       const UncompressedComponents* const colldata,
                                       Sirikata::Array1d<ConstBlockContext, (uint32_t)ColorChannel::NumBlockTypes>& context,
-                                      BoolEncoder &bool_encoder) {
+                                      BoolEncoder& bool_encoder) {
     uint32_t block_width = colldata->full_component_nosync((int)middle_model.COLOR).block_width();
     if (block_width > 0) {
         ConstBlockContext state = context.at((int)middle_model.COLOR);
@@ -102,40 +131,44 @@ void VP8ComponentEncoder::process_row(ProbabilityTablesBase& pt,
         gctx->cur_jpeg_y = curr_y;
 #endif
         state.num_nonzeros_here->set_num_nonzeros(block.recalculate_coded_length());
-        serialize_tokens(state,
+        
+		serialize_tokens(state,
                          bool_encoder,
                          left_model,
                          pt);
-        uint32_t offset = colldata->full_component_nosync((int)middle_model.COLOR).next(state,
-                                                                                        true,
-                                                                                        curr_y);
+        
+		uint32_t offset = colldata->full_component_nosync((int)middle_model.COLOR).next(state, true, curr_y);
         context.at((int)middle_model.COLOR) = state;
+		
         if (offset >= colldata->component_size_in_blocks(middle_model.COLOR)) {
             return;
         }
-        
     }
+	
     for (unsigned int jpeg_x = 1; jpeg_x + 1 < block_width; jpeg_x++) {
         ConstBlockContext state = context.at((int)middle_model.COLOR);
-        const AlignedBlock &block = state.here();
+        AlignedBlock const& block = state.here();
+		
 #ifdef ANNOTATION_ENABLED
         gctx->cur_cmp = component; // for debug purposes only, not to be used in production
         gctx->cur_jpeg_x = jpeg_x;
         gctx->cur_jpeg_y = curr_y;
 #endif
-        state.num_nonzeros_here->set_num_nonzeros(block.recalculate_coded_length()); //FIXME set edge pixels too
+		
+        state.num_nonzeros_here->set_num_nonzeros(block.recalculate_coded_length()); /// FIXME set edge pixels too
+		
         serialize_tokens(state,
                          bool_encoder,
                          middle_model,
                          pt);
+		
         uint32_t offset = colldata->full_component_nosync((int)middle_model.COLOR).next(state,
                                                                                         true,
                                                                                         curr_y);
         context.at((int)middle_model.COLOR) = state;
-        if (offset >= colldata->component_size_in_blocks(middle_model.COLOR)) {
-            return;
-        }
+        if (offset >= colldata->component_size_in_blocks(middle_model.COLOR)) { return; }
     }
+	
     if (block_width > 1) {
         ConstBlockContext state = context.at((int)middle_model.COLOR);
         const AlignedBlock &block = state.here();
@@ -144,12 +177,15 @@ void VP8ComponentEncoder::process_row(ProbabilityTablesBase& pt,
         gctx->cur_jpeg_x = block_width - 1;
         gctx->cur_jpeg_y = curr_y;
 #endif
-        state.num_nonzeros_here->set_num_nonzeros(block.recalculate_coded_length());
-        serialize_tokens(state,
+        
+		state.num_nonzeros_here->set_num_nonzeros(block.recalculate_coded_length());
+        
+		serialize_tokens(state,
                          bool_encoder,
                          right_model,
                          pt);
-        colldata->full_component_nosync((int)middle_model.COLOR).next(state, false, curr_y);
+        
+		colldata->full_component_nosync((int)middle_model.COLOR).next(state, false, curr_y);
         context.at((int)middle_model.COLOR) = state;
     }
 }
@@ -415,6 +451,7 @@ void VP8ComponentEncoder::process_row_range(unsigned int thread_id,
             }
         }
     }
+	
     RowSpec test = row_spec_from_index(encode_index,
                                        image_data,
                                        colldata->get_mcu_count_vertical(),
@@ -440,14 +477,13 @@ int load_model_file_fd_output() {
 #endif
     );
 }
+
 int model_file_fd = load_model_file_fd_output();
 
-
-CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedComponents * const colldata,
-                                                         IOUtil::FileWriter *str_out,
-                                                         const ThreadHandoff * selected_splits,
-                                                         unsigned int num_selected_splits)
-{
+CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedComponents* const colldata,
+                                                         IOUtil::FileWriter* str_out,
+                                                         const ThreadHandoff* selected_splits,
+                                                         unsigned int num_selected_splits) {
     /* cmpc is a global variable with the component count */
     using namespace Sirikata;
     /* get ready to serialize the blocks */
@@ -472,8 +508,8 @@ CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedCompo
     
     ResizableByteBuffer stream[MuxReader::MAX_STREAM_ID];
     BoolEncoder bool_encoder[MAX_NUM_THREADS];
-    Array1d<std::vector<NeighborSummary>,
-            (uint32_t)ColorChannel::NumBlockTypes> num_nonzeros[MAX_NUM_THREADS];
+    Array1d<std::vector<NeighborSummary>, (uint32_t)ColorChannel::NumBlockTypes> num_nonzeros[MAX_NUM_THREADS];
+	
     for (unsigned int thread_id = 0; thread_id < NUM_THREADS; ++thread_id) {
         bool_encoder[thread_id].init();
         for (std::size_t i = 0; i < num_nonzeros[thread_id].size(); ++i) {
@@ -483,8 +519,7 @@ CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedCompo
 
     if (do_threading_) {
         for (unsigned int thread_id = 1; thread_id < NUM_THREADS; ++thread_id) {
-            spin_workers_[thread_id - 1].work
-                = std::bind(&VP8ComponentEncoder::process_row_range, this,
+            spin_workers_[thread_id - 1].work = std::bind(&VP8ComponentEncoder::process_row_range, this,
                             thread_id,
                             colldata,
                             selected_splits[thread_id].luma_y_start,
@@ -502,7 +537,7 @@ CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedCompo
                       &stream[0],
                       &bool_encoder[0],
                       &num_nonzeros[0]);
-    if(!do_threading_) { // single threading
+    if (!do_threading_) { // single threading
         for (unsigned int thread_id = 1; thread_id < NUM_THREADS; ++thread_id) {
             process_row_range(thread_id,
                               colldata,
@@ -523,11 +558,12 @@ CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedCompo
             TimingHarness::timing[thread_id][TimingHarness::TS_THREAD_WAIT_FINISHED] = TimingHarness::get_time_us();
         }
     }
+	
     TimingHarness::timing[0][TimingHarness::TS_STREAM_MULTIPLEX_STARTED] = TimingHarness::get_time_us();
-
     Sirikata::MuxWriter mux_writer(str_out, JpegAllocator<uint8_t>());
     std::size_t stream_data_offset[MuxReader::MAX_STREAM_ID] = { 0 };
     bool any_written = true;
+	
     while (any_written) {
         any_written = false;
         for (int i = 0; i < MuxReader::MAX_STREAM_ID; ++i) {
@@ -544,13 +580,16 @@ CodingReturnValue VP8ComponentEncoder::vp8_full_encoder( const UncompressedCompo
             }
         }
     }
+	
     mux_writer.Close();
     write_byte_bill(Billing::DELIMITERS, true, mux_writer.getOverhead());
     // we can probably exit(0) here
     TimingHarness::timing[0][TimingHarness::TS_STREAM_MULTIPLEX_FINISHED] =
         TimingHarness::timing[0][TimingHarness::TS_STREAM_FLUSH_STARTED] = TimingHarness::get_time_us();
-    check_decompression_memory_bound_ok(); // this has to happen before last
-    // bytes are written
+    
+	check_decompression_memory_bound_ok(); // this has to happen before last
+    
+	// bytes are written
     /* possibly write out new probability model */
     {
         uint32_t out_file_size = str_out->getsize() + 4; // gotta include the final uint32_t

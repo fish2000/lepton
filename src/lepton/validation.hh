@@ -12,6 +12,5 @@ ValidationContinuation validateAndCompress(int* reader, int* writer,
                                            std::size_t end_byte,
                                            ExitCode* validation_exit_code,
                                            Sirikata::MuxReader::ResizableByteBuffer* output,
-                                           int argc, 
-                                           const char** argv,
+                                           int argc, const char** argv,
                                            bool is_socket);

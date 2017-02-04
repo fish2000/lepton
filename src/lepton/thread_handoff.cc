@@ -63,13 +63,13 @@ std::vector<unsigned char> ThreadHandoff::serialize(const ThreadHandoff* data,
         retval.push_back(th.overhang_byte);
         retval.push_back(th.num_overhang_bits);
         unsigned int dc_values = 0;
-        for (unsigned int i = 0; i < sizeof(th.last_dc)/sizeof(th.last_dc[0]); ++i) {
+        for (unsigned int i = 0; i < sizeof(th.last_dc) / sizeof(th.last_dc[0]); ++i) {
             uint16_t dc = th.last_dc[i]; // this will cast to unsigned
             retval.push_back(dc & 255);
             retval.push_back((dc >> 8) & 255);
             ++dc_values;
         }
-        for(; dc_values < 4; ++dc_values) {
+        for (; dc_values < 4; ++dc_values) {
             retval.push_back(0);
             retval.push_back(0);
         }

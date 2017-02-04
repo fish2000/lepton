@@ -164,7 +164,7 @@ class abitwriter {
 
 	    }
 	
-	    void pad (unsigned char fillbit) {
+	    void pad(unsigned char fillbit) {
 	        int offset = 1;
 	        while ((cbit2 & 7) && cbyte2 < size_bound) {
 	            write((fillbit & offset) ? 1 : 0, 1);

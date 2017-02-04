@@ -33,10 +33,10 @@ void SimpleComponentDecoder::decode_row(int thread_state_id,
 
 BlockType bt_get_cmp(int cur_read_batch[3], int target[3]) {
     BlockType cmp = BlockType::Y;
-    double cmp_progress = cur_read_batch[(int)cmp]/(double)target[(int)cmp];
+    double cmp_progress = cur_read_batch[(int)cmp] / (double)target[(int)cmp];
     for (unsigned int icmp = 1; icmp < 3; ++icmp) {
         if (target[(int)cmp] && cur_read_batch[icmp] != target[icmp]) {
-            double cprogress = cur_read_batch[icmp]/(double)target[icmp];
+            double cprogress = cur_read_batch[icmp] / (double)target[icmp];
             if (cprogress < cmp_progress) {
                 cmp = (BlockType)icmp;
                 cmp_progress = cprogress;
@@ -49,10 +49,12 @@ BlockType bt_get_cmp(int cur_read_batch[3], int target[3]) {
 CodingReturnValue SimpleComponentDecoder::decode_chunk(UncompressedComponents* colldata) {
     colldata->worker_update_coefficient_position_progress(64); // we are optimizing for baseline only atm
     colldata->worker_update_bit_progress(16); // we are optimizing for baseline only atm
+	
 	// read actual decompressed coefficient data from file
-    char zero[sizeof(target)] = {0};
+    char zero[sizeof(target)] = { 0 };
+	
     if (memcmp(target, zero, sizeof(target)) == 0) {
-        unsigned char bs[4] = {0};
+        unsigned char bs[4] = { 0 };
         IOUtil::ReadFull(str_in, bs, sizeof(bs));
         batch_size = bs[3];
         batch_size <<= 8;
@@ -65,14 +67,19 @@ CodingReturnValue SimpleComponentDecoder::decode_chunk(UncompressedComponents* c
             target[cmp] = colldata->component_size_in_blocks(cmp);
         }
     }
+	
     BlockType cmp = bt_get_cmp(cur_read_batch, target);
-    if ((std::size_t)cmp == sizeof(cur_read_batch)/sizeof(cur_read_batch[0]) || cur_read_batch[(std::size_t)cmp] == target[(std::size_t)cmp]) {
+    if ((std::size_t)cmp == sizeof(cur_read_batch)/sizeof(cur_read_batch[0]) ||
+		cur_read_batch[(std::size_t)cmp] == target[(std::size_t)cmp]) {
         return CODING_DONE;
     }
-    // read coefficient data from file
+    
+	// read coefficient data from file
     BlockBasedImage &start = colldata->full_component_write(cmp);
+	
     while (cur_read_batch[(int)cmp] < target[(int)cmp]) {
         int cur_read_size = std::min((int)batch_size, target[(int)cmp] - cur_read_batch[(int)cmp]);
+		
         for (int i = 0;i < cur_read_size; ++i) {
             std::size_t retval = IOUtil::ReadFull(str_in, &start.raster(cur_read_batch[(int)cmp] + i), sizeof(short) * 64);
             if (retval != sizeof(short) * 64) {
@@ -81,11 +88,13 @@ CodingReturnValue SimpleComponentDecoder::decode_chunk(UncompressedComponents* c
                 return CODING_ERROR;
             }
         }
+		
         cur_read_batch[(int)cmp] += cur_read_size;
         colldata->worker_update_cmp_progress(cmp, cur_read_size);
         
         return CODING_PARTIAL;
     }
+	
     assert(false && "UNREACHABLE");
     return CODING_PARTIAL;
 }

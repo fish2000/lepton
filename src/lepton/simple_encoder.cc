@@ -23,11 +23,14 @@ CodingReturnValue SimpleComponentEncoder::encode_chunk(const UncompressedCompone
     // read coefficient data from file
     unsigned int batch_size = 1600;
 
-    char zero[sizeof(target)] = {0};
+    char zero[sizeof(target)] = { 0 };
     if (std::memcmp(target, zero, sizeof(target)) == 0) {
         unsigned int t24 = 65536 * 256;
-        unsigned char bs[4] = {(unsigned char)(batch_size & 0xff), (unsigned char)((batch_size / 256) & 0xff),
-                               (unsigned char)((batch_size / 65536) & 0xff), (unsigned char)((batch_size / t24) & 0xff)};
+        unsigned char bs[4] = { (unsigned char)(batch_size & 0xff),
+								(unsigned char)((batch_size / 256) & 0xff),
+                                (unsigned char)((batch_size / 65536) & 0xff),
+								(unsigned char)((batch_size / t24) & 0xff) };
+		
         str_out->Write(bs, sizeof(bs));        
         for (unsigned int cmp = 0; cmp < 4; ++cmp) {
             target[cmp] = colldata->component_size_in_blocks(cmp);
@@ -37,12 +40,14 @@ CodingReturnValue SimpleComponentEncoder::encode_chunk(const UncompressedCompone
     if (cmp == sizeof(cur_read_batch)/sizeof(cur_read_batch[0]) || cur_read_batch[cmp] == target[cmp]) {
         return CODING_DONE;
     }
-    const BlockBasedImage& start = colldata->full_component_nosync( cmp );
+	
+    const BlockBasedImage& start = colldata->full_component_nosync(cmp);
+	
     while (cur_read_batch[cmp] < target[cmp]) {
         int cur_write_size = std::min((int)batch_size, target[cmp] - cur_read_batch[cmp]);
         for (int i = 0; i < cur_write_size; ++i) {
             str_out->Write(reinterpret_cast<const unsigned char*>(start.raster(cur_read_batch[cmp] + i).raw_data()),
-                           sizeof( short ) * 64);
+                           sizeof(short) * 64);
         }
         cur_read_batch[cmp] += cur_write_size;
         return CODING_PARTIAL;

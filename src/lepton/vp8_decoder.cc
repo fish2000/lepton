@@ -22,8 +22,8 @@ void VP8ComponentDecoder::initialize(Sirikata::DecoderReader* input, std::vector
 }
 
 void VP8ComponentDecoder::decode_row(int target_thread_id,
-                                     BlockBasedImagePerChannel<true>& image_data, // FIXME: set image_data to true
-                                     Sirikata::Array1d<uint32_t,(uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
+                                     BlockBasedImagePerChannel<true>& image_data, /// FIXME: set image_data to true
+                                     Sirikata::Array1d<uint32_t, (uint32_t)ColorChannel::NumBlockTypes> component_size_in_blocks,
                                      int component,
                                      int curr_y) {
     thread_state_[target_thread_id]->decode_row(image_data,
@@ -92,16 +92,16 @@ void VP8ComponentDecoder::initialize_thread_id(int thread_id, int target_thread_
     }
 	
     /* initialize the bool decoder */
-    int index = thread_id;
-    always_assert((std::size_t)index < streams_.size());
+    int idx = thread_id;
+    always_assert((std::size_t)idx < streams_.size());
     
-	thread_state_[target_thread_state]->bool_decoder_.init(streams_[index].first != streams_[index].second ?
-														 &*streams_[index].first : nullptr,
-													 	   streams_[index].second - streams_[index].first);
+	thread_state_[target_thread_state]->bool_decoder_.init(streams_[idx].first != streams_[idx].second ?
+														 &*streams_[idx].first : nullptr,
+													 	   streams_[idx].second - streams_[idx].first);
 	
     thread_state_[target_thread_state]->is_valid_range_ = false;
     thread_state_[target_thread_state]->luma_splits_.resize(2);
-    if ((std::size_t)index < thread_handoff_.size()) {
+    if ((std::size_t)idx < thread_handoff_.size()) {
         thread_state_[target_thread_state]->luma_splits_[0] = thread_handoff_[thread_id].luma_y_start;
         thread_state_[target_thread_state]->luma_splits_[1] = thread_handoff_[thread_id].luma_y_end;
     } else {
@@ -121,8 +121,7 @@ std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_baseline_decoder(
 
 template <bool force_memory_optimized>
 std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const UncompressedComponents* const colldata,
-                                                   Sirikata::Array1d<BlockBasedImagePerChannel<force_memory_optimized>,
-                                                                     MAX_NUM_THREADS>& framebuffer) {
+                                                   Sirikata::Array1d<BlockBasedImagePerChannel<force_memory_optimized>, MAX_NUM_THREADS>& framebuffer) {
     if (colldata->get_num_components() > (int)BlockType::Y) {
         ProbabilityTablesBase::set_quantization_table(BlockType::Y,
                                                       colldata->get_quantization_tables(BlockType::Y));
@@ -184,11 +183,10 @@ std::vector<ThreadHandoff> VP8ComponentDecoder::initialize_decoder_state(const U
     return thread_handoff_;
 }
 
-CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents* const colldata)
-{
+CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents* const colldata) {
     /* cmpc is a global variable with the component count */
     /* construct 4x4 VP8 blocks to hold 8x8 JPEG blocks */
-    if ( thread_state_[0] == nullptr || thread_state_[0]->context_[0].isNil() ) {
+    if (thread_state_[0] == nullptr || thread_state_[0]->context_[0].isNil()) {
         /* first call */
         BlockBasedImagePerChannel<false> framebuffer;
         framebuffer.memset(0);
@@ -199,8 +197,7 @@ CodingReturnValue VP8ComponentDecoder::decode_chunk(UncompressedComponents* cons
         for (std::size_t i = 0; i < all_framebuffers.size(); ++i) {
             all_framebuffers[i] = framebuffer;
         }
-        std::size_t num_threads_needed = initialize_decoder_state(colldata,
-                                                             all_framebuffers).size();
+        std::size_t num_threads_needed = initialize_decoder_state(colldata, all_framebuffers).size();
         for (std::size_t i = 0;i < num_threads_needed; ++i) {
             initialize_thread_id(i, i, framebuffer);
             if (!do_threading_) { break; }

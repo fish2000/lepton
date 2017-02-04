@@ -15,16 +15,15 @@
 	#if defined(__APPLE__) || defined(BSD)
 		#include <sys/wait.h>
 	#else
-	#include <sys/signalfd.h>
-	#include <wait.h>
-#endif
-
-#include <poll.h>
-#include <cerrno>
-#include "../io/Reader.hh"
-#include "socket_serve.hh"
-#include "../../vp8/util/memory.hh"
-#include <set>
+		#include <sys/signalfd.h>
+		#include <wait.h>
+	#endif
+	#include <poll.h>
+	#include <cerrno>
+	#include "../io/Reader.hh"
+	#include "socket_serve.hh"
+	#include "../../vp8/util/memory.hh"
+	#include <set>
 
 static char hex_nibble(uint8_t val) {
     if (val < 10) return val + '0';
@@ -32,12 +31,13 @@ static char hex_nibble(uint8_t val) {
 }
 
 static const char last_prefix[] = "/tmp/";
-static const char last_postfix[]=".uport";
-static const char zlast_postfix[]=".z0";
+static const char last_postfix[] = ".uport";
+static const char zlast_postfix[] = ".z0";
 
 static char socket_name[sizeof((struct sockaddr_un*)0)->sun_path] = {};
 static char zsocket_name[sizeof((struct sockaddr_un*)0)->sun_path] = {};
-static const char lock_ext[]=".lock";
+
+static const char lock_ext[] = ".lock";
 
 bool random_name = false;
 static char socket_lock[sizeof((struct sockaddr_un*)0)->sun_path + sizeof(lock_ext)];
@@ -114,6 +114,7 @@ pid_t accept_new_connection(int active_connection,
              &writer,
              global_max_length,
              force_zlib);
+		
         custom_exit(ExitCode::SUCCESS);
     } else {
         while (::close(active_connection) < 0 && errno == EINTR) {}
@@ -131,20 +132,20 @@ int should_wait_bitmask(std::size_t children_size,
 
 int make_sigchld_fd() {
     int fd = -1;
-#if !(defined(__APPLE__) || defined(BSD))
-    sigset_t sigset;
-    int err = ::sigemptyset(&sigset);
-    always_assert(err == 0);
-    err = ::sigaddset(&sigset, SIGCHLD);
-    always_assert(err == 0);
+	#if !(defined(__APPLE__) || defined(BSD))
+	    sigset_t sigset;
+	    int err = ::sigemptyset(&sigset);
+	    always_assert(err == 0);
+	    err = ::sigaddset(&sigset, SIGCHLD);
+	    always_assert(err == 0);
 
-    // the signalfd will only receive SIG_BLOCK'd signals
-    err = ::sigprocmask(SIG_BLOCK, &sigset, nullptr);
-    always_assert(err == 0);
+	    // the signalfd will only receive SIG_BLOCK'd signals
+	    err = ::sigprocmask(SIG_BLOCK, &sigset, nullptr);
+	    always_assert(err == 0);
 
-    fd = ::signalfd(-1, &sigset, 0);
-    always_assert(fd != -1);
-#endif
+	    fd = ::signalfd(-1, &sigset, 0);
+	    always_assert(fd != -1);
+	#endif
     return fd;
 }
 
@@ -155,7 +156,7 @@ void write_num_children(std::size_t num_children) {
     // lets just keep a byte of state about the number of children
     if (lock_file != -1) {
         int err;
-        while ((err = lseek(lock_file, 0, SEEK_SET)) < 0 && errno == EINTR) {}
+        while ((err = ::lseek(lock_file, 0, SEEK_SET)) < 0 && errno == EINTR) {}
 		
         uint8_t num_children_byte = (uint8_t)num_children;
         while((err = ::write(lock_file, &num_children_byte, sizeof(num_children_byte))) < 0 && errno == EINTR) {}
@@ -243,11 +244,11 @@ void serving_loop(int unix_domain_socket_server,
             if (fds[i].revents & POLLIN) {
                 fds[i].revents = 0;
                 if (fds[i].fd == sigchild_fd) {
-#if !(defined(__APPLE__) || defined(BSD))
-                    struct signalfd_siginfo info;
-                    ssize_t ignore = ::read(fds[i].fd, &info, sizeof(info));
-                    (void)ignore;
-#endif
+					#if !(defined(__APPLE__) || defined(BSD))
+	                    struct signalfd_siginfo info;
+	                    ssize_t ignore = ::read(fds[i].fd, &info, sizeof(info));
+	                    (void)ignore;
+					#endif
                     continue; // we can't receive on this
                 }
                 struct sockaddr_un client;
@@ -276,6 +277,7 @@ void serving_loop(int unix_domain_socket_server,
         }
     }
 }
+
 int setup_tcp_socket(int port, int listen_backlog) {
     int socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);
     always_assert(socket_fd > 0);    
@@ -305,7 +307,7 @@ int setup_socket(const char* file_name, int listen_backlog) {
     std::memset(&address, 0, sizeof(struct sockaddr_un));
     address.sun_family = AF_UNIX;
     std::memcpy(address.sun_path, file_name, std::min(strlen(file_name), sizeof(address.sun_path)));
-    err = bind(socket_fd, (struct sockaddr*)&address, sizeof(address));
+    err = ::bind(socket_fd, (struct sockaddr*)&address, sizeof(address));
     always_assert(err == 0);
     err = ::listen(socket_fd, listen_backlog);
     int ret = ::chmod(file_name, 0666);
@@ -350,9 +352,11 @@ void socket_serve(SocketServeWorkFunction const& work_fn,
                 do {
                     err = ::remove(socket_name);
                 } while (err < 0 && errno == EINTR);
-                do {
+                
+				do {
                     err = ::remove(zsocket_name);
                 } while (err < 0 && errno == EINTR);
+				
                 ::signal(SIGINT, &cleanup_socket);
                 // if we have the lock we can clean it up
                 ::signal(SIGQUIT, &cleanup_socket);
@@ -364,33 +368,41 @@ void socket_serve(SocketServeWorkFunction const& work_fn,
         FILE* dev_random = std::fopen("/dev/urandom", "rb");
         name_socket(dev_random);
         std::fclose(dev_random);
-        do {
+        
+		do {
             lock_file = ::open(socket_lock,
                           	   O_RDWR | O_CREAT | O_TRUNC,
 							   S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR);
         } while (lock_file < 0 && errno == EINTR);
+		
         ::signal(SIGINT, &cleanup_socket);
         ::signal(SIGQUIT, &cleanup_socket);
         ::signal(SIGTERM, &cleanup_socket);
     }
+	
     ::signal(SIGCHLD, &nop);
-    // listen
+    
+	// listen
     int socket_fd = -1;
     int zsocket_fd = -1;
     int socket_tcp = -1;
     int zsocket_tcp = -1;
-    if (service_info.listen_uds) {
+    
+	if (service_info.listen_uds) {
         socket_fd = setup_socket(socket_name, service_info.listen_backlog);
         zsocket_fd = setup_socket(zsocket_name, service_info.listen_backlog);
     }
-    if (service_info.listen_tcp) {
+    
+	if (service_info.listen_tcp) {
         socket_tcp = setup_tcp_socket(service_info.port, service_info.listen_backlog);
         zsocket_tcp = setup_tcp_socket(service_info.zlib_port, service_info.listen_backlog);
     }
     
     std::fprintf(stdout, "%s\n", socket_name);
     std::fflush(stdout);
+	
     serving_loop(socket_fd, zsocket_fd, socket_tcp, zsocket_tcp,
                  work_fn, global_max_length, service_info.max_children, do_cleanup_socket, lock_fd);
 }
-#endif
+
+#endif /// ifndef WIN32

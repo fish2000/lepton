@@ -18,7 +18,7 @@ class ThreadHandoff {
 	    uint8_t num_overhang_bits;
 	    Sirikata::Array1d<int16_t, (uint32_t)ColorChannel::NumBlockTypes> last_dc;
 	    
-		enum  {
+		enum {
 	        BYTES_PER_HANDOFF = (16 /* luma end is implicit*/ + 32 + 16 * 4 + 8 * 2) / 8,
 	        // num_overhang_bits is set to this for legacy formats which must be decoded single threaded
 	        LEGACY_OVERHANG_BITS = 0xff

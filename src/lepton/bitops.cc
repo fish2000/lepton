@@ -68,12 +68,13 @@ abitreader::~abitreader( void )
 	constructor for abitwriter class
 	----------------------------------------------- */	
 
-abitwriter::abitwriter( int size , int max_file_size)
-{
+abitwriter::abitwriter(int size, int max_file_size) {
     size_bound = max_file_size;
-    if (size_bound) {
+    
+	if (size_bound) {
         size_bound += 8; // 64 bits of padding on the end
     }
+	
     fillbit = 1;
     adds    = 65536;
     cbyte2   = 0;
@@ -82,9 +83,10 @@ abitwriter::abitwriter( int size , int max_file_size)
 
     error = false;
     fmem  = true;
-    dsize = ( size > 0 ) ? size : adds;
-    data2 = ( unsigned char* ) custom_calloc (dsize);
-    if ( data2 == nullptr ) {
+    dsize = (size > 0) ? size : adds;
+    data2 = (unsigned char*)custom_calloc(dsize);
+	
+    if (data2 == nullptr) {
         error = true;
         custom_exit(ExitCode::MALLOCED_NULL);
         return;
@@ -96,10 +98,9 @@ abitwriter::abitwriter( int size , int max_file_size)
 	destructor for abitwriter class
 	----------------------------------------------- */	
 
-abitwriter::~abitwriter( void )
-{
+abitwriter::~abitwriter(void) {
 	// free memory if pointer was not given out
-    if ( fmem )	custom_free( data2 );
+    if (fmem) { custom_free(data2); }
 }
 
 
@@ -108,10 +109,11 @@ void aligned_dealloc(unsigned char *data) {
     data -= data[-1];
     custom_free(data);
 }
-unsigned char *aligned_alloc(size_t dsize) {
-    unsigned char*data = (unsigned char*) custom_malloc( dsize + 16);
+
+unsigned char* aligned_alloc(std::size_t dsize) {
+    unsigned char* data = (unsigned char*)custom_malloc(dsize + 16);
     if (data) {
-        size_t rem = (size_t)(data - 0) & 0xf;
+        std::size_t rem = (std::size_t)(data - 0) & 0xf;
         if (rem) {
             data += rem;
             data[-1] = rem;
@@ -126,17 +128,16 @@ unsigned char *aligned_alloc(size_t dsize) {
 	constructor for abytewriter class
 	----------------------------------------------- */	
 
-abytewriter::abytewriter( int size )
-{
+abytewriter::abytewriter(int size) {
 	adds  = 65536;
 	cbyte = 0;
-	
 	error = false;
 	fmem  = true;
 	
-	dsize = ( size > 0 ) ? size : adds;
+	dsize = (size > 0) ? size : adds;
     data = aligned_alloc(dsize);
-	if ( data == nullptr ) {
+	
+	if (data == nullptr) {
 		error = true;
         custom_exit(ExitCode::MALLOCED_NULL);
 		return;
@@ -147,8 +148,7 @@ abytewriter::abytewriter( int size )
 	destructor for abytewriter class
 	----------------------------------------------- */	
 
-abytewriter::~abytewriter( void )
-{
+abytewriter::~abytewriter(void) {
 	// free data if pointer is not read
 	if (fmem && data) aligned_dealloc(data);
 }
@@ -157,21 +157,20 @@ abytewriter::~abytewriter( void )
 	writes 1 byte to abytewriter
 	----------------------------------------------- */	
 
-void abytewriter::write( unsigned char byte )
-{
+void abytewriter::write(unsigned char byte) {
 	// safety check for error
-	if ( error ) return;
+	if (error) { return; }
 	
 	// test if pointer beyond flush threshold
-	if ( cbyte >= ( dsize - 2 ) ) {
+	if (cbyte >= (dsize - 2)) {
         if (data) {
-            unsigned char * newData = aligned_alloc(dsize *  2);
-            memcpy(newData, data, dsize);
+            unsigned char* newData = aligned_alloc(dsize *  2);
+            std::memcpy(newData, data, dsize);
             dsize *= 2;
             aligned_dealloc(data);
             data = newData;
         }
-		if ( data == nullptr ) {
+		if (data == nullptr) {
 			error = true;
             custom_exit(ExitCode::MALLOCED_NULL);
 			return;
@@ -179,26 +178,26 @@ void abytewriter::write( unsigned char byte )
 	}
 	
 	// write data
-	data[ cbyte++ ] = byte;
+	data[cbyte++] = byte;
 }
 
 /* -----------------------------------------------
 	writes n byte to abytewriter
 	----------------------------------------------- */
 
-void abytewriter::write_n( unsigned char* byte, int n )
-{
+void abytewriter::write_n(unsigned char* byte, int n) {
 	// safety check for error
-	if ( error ) return;
+	if (error) { return; }
 
 	// make sure that pointer doesn't get beyond flush threshold
-	while ( ( cbyte + n ) >= ( dsize - 2 ) ) {
+	while ((cbyte + n) >= (dsize - 2)) {
         unsigned char * newData = aligned_alloc(dsize *  2);
-        memcpy(newData, data, dsize);
+        std::memcpy(newData, data, dsize);
         dsize *= 2;
         aligned_dealloc(data);
         data = newData;
-		if ( data == nullptr ) {
+		
+		if (data == nullptr) {
             error = true;
             custom_exit(ExitCode::MALLOCED_NULL);
 			return;
@@ -206,16 +205,16 @@ void abytewriter::write_n( unsigned char* byte, int n )
 	}
 
 	// copy data from array
-	while ( n-- > 0 )
-		data[ cbyte++ ] = *(byte++);
+	while (n-- > 0) {
+		data[cbyte++] = *(byte++);
+	}
 }
 
 /* -----------------------------------------------
 	gets data array from abytewriter
 	----------------------------------------------- */
 
-unsigned char* abytewriter::getptr_aligned( void )
-{
+unsigned char* abytewriter::getptr_aligned(void) {
 	// forbid freeing memory
 	fmem = false;
 	return data;
@@ -225,8 +224,7 @@ unsigned char* abytewriter::getptr_aligned( void )
 	peeks into data array from abytewriter
 	----------------------------------------------- */
 	
-unsigned char* abytewriter::peekptr_aligned( void )
-{
+unsigned char* abytewriter::peekptr_aligned(void) {
 	return data;
 }
 
@@ -234,8 +232,7 @@ unsigned char* abytewriter::peekptr_aligned( void )
 	gets size of data array from abytewriter
 	----------------------------------------------- */	
 
-int abytewriter::getpos( void )
-{
+int abytewriter::getpos(void) {
 	return cbyte;
 }
 
@@ -243,8 +240,7 @@ int abytewriter::getpos( void )
 	reset without realloc
 	----------------------------------------------- */	
 	
-void abytewriter::reset( void )
-{
+void abytewriter::reset(void) {
 	// set position of current byte
 	cbyte = 0;
 }
@@ -254,39 +250,34 @@ void abytewriter::reset( void )
 	constructor for abytewriter class
 	----------------------------------------------- */
 
-abytereader::abytereader( unsigned char* array, int size )
-{
+abytereader::abytereader(unsigned char* array, int size) {
 	cbyte = 0;
 	eof = false;
-	
 	data = array;
 	lbyte = size;
 	
-	if ( ( data == nullptr ) || ( lbyte == 0 ) )
+	if ((data == nullptr) || (lbyte == 0)) {
 		eof = true;
+	}
 }
 
 /* -----------------------------------------------
 	destructor for abytewriter class
 	----------------------------------------------- */
 
-abytereader::~abytereader( void )
-{
-}
+abytereader::~abytereader(void) {}
 
 /* -----------------------------------------------
 	reads 1 byte from abytereader
 	----------------------------------------------- */
 
-int abytereader::read( unsigned char* byte )
-{
-	if ( cbyte >= lbyte ) {
+int abytereader::read(unsigned char* byte) {
+	if (cbyte >= lbyte) {
 		cbyte = lbyte;
 		eof = true;
 		return 0;
-	}
-	else {
-		*byte = data[ cbyte++ ];
+	} else {
+		*byte = data[cbyte++];
 		return 1;
 	}
 }
@@ -295,21 +286,21 @@ int abytereader::read( unsigned char* byte )
 	reads n bytes from abytereader
 	----------------------------------------------- */
 	
-int abytereader::read_n( unsigned char* byte, int n )
-{
+int abytereader::read_n(unsigned char* byte, int n) {
 	int nl = lbyte - cbyte;
 	int i;
 	
-	if ( nl < n ) {
-		for ( i = 0; i < nl; i++ )
-			byte[ i ] = data[ cbyte + i ];
+	if (nl < n) {
+		for (i = 0; i < nl; i++) {
+			byte[i] = data[cbyte + i];
+		}
 		cbyte = lbyte;
 		eof = true;
 		return nl;
-	}
-	else {
-		for ( i = 0; i < n; i++ )
-			byte[ i ] = data[ cbyte + i ];
+	} else {
+		for (i = 0; i < n; i++) {
+			byte[i] = data[cbyte + i];
+		}
 		cbyte += n;
 		return n;
 	}
@@ -319,13 +310,11 @@ int abytereader::read_n( unsigned char* byte, int n )
 	go to position in data
 	----------------------------------------------- */
 	
-void abytereader::seek( int pos )
-{
-	if ( pos >= lbyte ) {
+void abytereader::seek(int pos) {
+	if (pos >= lbyte) {
 		cbyte = lbyte;
 		eof = true;
-	}
-	else {
+	} else {
 		cbyte = pos;
 		eof = false;
 	}
@@ -335,8 +324,7 @@ void abytereader::seek( int pos )
 	gets size of current data
 	----------------------------------------------- */
 	
-int abytereader::getsize( void )
-{
+int abytereader::getsize(void) {
 	return lbyte;
 }
 
@@ -344,48 +332,53 @@ int abytereader::getsize( void )
 	gets current position from abytereader
 	----------------------------------------------- */	
 
-int abytereader::getpos( void )
-{
+int abytereader::getpos(void) {
 	return cbyte;
 }
 
 bounded_iostream::bounded_iostream(Sirikata::DecoderWriter *w,
-                                   const std::function<void(Sirikata::DecoderWriter*, size_t)> &size_callback,
-                                   const Sirikata::JpegAllocator<uint8_t> &alloc) 
-    : parent(w), err(Sirikata::JpegError::nil()) {
-    this->size_callback = size_callback;
-    buffer_position = 0;
-    byte_position = 0;
-    num_bytes_attempted_to_write = 0;
-    set_bound(0);
-}
-void bounded_iostream::call_size_callback(size_t size) {
+                                   std::function<void(Sirikata::DecoderWriter*, size_t)> const& size_callback,
+                                   Sirikata::JpegAllocator<uint8_t> const& alloc) 
+    :parent(w)
+	,err(Sirikata::JpegError::nil())
+	{
+	    this->size_callback = size_callback;
+	    buffer_position = 0;
+	    byte_position = 0;
+	    num_bytes_attempted_to_write = 0;
+	    set_bound(0);
+	}
+
+void bounded_iostream::call_size_callback(std::size_t size) {
     size_callback(parent, size);
 }
+
 bool bounded_iostream::chkerr() {
     return err != Sirikata::JpegError::nil();
 }
 
-void bounded_iostream::set_bound(size_t bound) {
+void bounded_iostream::set_bound(std::size_t bound) {
     flush();
     byte_bound = bound;
 }
+
 void bounded_iostream::flush() {
     if (buffer_position) {
         write_no_buffer(buffer, buffer_position);
         buffer_position = 0;
     }
 }
+
 void bounded_iostream::close() {
     flush();
     parent->Close();
 }
 
-unsigned int bounded_iostream::write_no_buffer(const void *from, size_t bytes_to_write) {
+unsigned int bounded_iostream::write_no_buffer(const void* from, std::size_t bytes_to_write) {
     //return iostream::write(from,tpsize,dtsize);
     std::pair<unsigned int, Sirikata::JpegError> retval;
     if (byte_bound != 0 && byte_position + bytes_to_write > byte_bound) {
-        size_t real_bytes_to_write = byte_bound - byte_position;
+        std::size_t real_bytes_to_write = byte_bound - byte_position;
         byte_position += real_bytes_to_write;
         retval = parent->Write(reinterpret_cast<const unsigned char*>(from), real_bytes_to_write);
         if (retval.first < real_bytes_to_write) {
@@ -394,7 +387,7 @@ unsigned int bounded_iostream::write_no_buffer(const void *from, size_t bytes_to
         }
         return bytes_to_write; // pretend we wrote it all
     }
-    size_t total = bytes_to_write;
+    std::size_t total = bytes_to_write;
     retval = parent->Write(reinterpret_cast<const unsigned char*>(from), total);
     unsigned int written = retval.first;
     byte_position += written;
@@ -409,18 +402,20 @@ unsigned int bounded_iostream::getsize() {
     return byte_position;
 }
 
-bounded_iostream::~bounded_iostream(){
-}
+bounded_iostream::~bounded_iostream() {}
 
-ibytestreamcopier::ibytestreamcopier(Sirikata::DecoderReader *p, unsigned int byte_offset,
+ibytestreamcopier::ibytestreamcopier(Sirikata::DecoderReader* p, unsigned int byte_offset,
                                      unsigned int max_file_size,
                                      const Sirikata::JpegAllocator<uint8_t> &alloc)
-    : ibytestream(p, byte_offset, alloc), side_channel(alloc) {
-    if (max_file_size) {
-        side_channel.reserve(max_file_size);
-    }
-}
-bool ibytestreamcopier::read_byte(unsigned char *output) {
+    :ibytestream(p, byte_offset, alloc)
+	,side_channel(alloc)
+	{
+	    if (max_file_size) {
+	        side_channel.reserve(max_file_size);
+	    }
+	}
+
+bool ibytestreamcopier::read_byte(unsigned char* output) {
     bool retval = ibytestream::read_byte(output);
     if (retval) {
         side_channel.push_back(*output);
@@ -428,20 +423,22 @@ bool ibytestreamcopier::read_byte(unsigned char *output) {
     return retval;
 }
 
-unsigned int ibytestreamcopier::read(unsigned char *output, unsigned int size) {
+unsigned int ibytestreamcopier::read(unsigned char* output, unsigned int size) {
     unsigned int retval = ibytestream::read(output, size);
     if (retval > 0) {
         side_channel.insert(side_channel.end(), output, output + retval);
     }
     return retval;
 }
-ibytestream::ibytestream(Sirikata::DecoderReader *p, unsigned int byte_offset,
-                         const Sirikata::JpegAllocator<uint8_t> &alloc) 
-    : parent(p) {
-    bytes_read = byte_offset;
-}
 
-unsigned int ibytestream::read(unsigned char*output, unsigned int size) {
+ibytestream::ibytestream(Sirikata::DecoderReader* p, unsigned int byte_offset,
+                         Sirikata::JpegAllocator<uint8_t> const& alloc) 
+    :parent(p)
+	{
+	    bytes_read = byte_offset;
+	}
+
+unsigned int ibytestream::read(unsigned char* output, unsigned int size) {
     assert(size);
     if (size == 1) {
         return read_byte(output) ? 1 : 0;
@@ -450,7 +447,7 @@ unsigned int ibytestream::read(unsigned char*output, unsigned int size) {
     bytes_read += retval;
     static_assert(sizeof(last_read) == 2, "Last read must hold full jpeg huffman");
     if (retval >= 2) {
-        memcpy(last_read, output + size - sizeof(last_read), sizeof(last_read));
+        std::memcpy(last_read, output + size - sizeof(last_read), sizeof(last_read));
     } else if (retval) {
         last_read[0] = last_read[1];
         last_read[1] = *output;
@@ -458,7 +455,7 @@ unsigned int ibytestream::read(unsigned char*output, unsigned int size) {
     return retval;
 }
 
-bool ibytestream::read_byte(unsigned char *output) {
+bool ibytestream::read_byte(unsigned char* output) {
     unsigned int retval = parent->Read(output, 1).first;
     if (retval != 0) {
         last_read[0] = last_read[1];
