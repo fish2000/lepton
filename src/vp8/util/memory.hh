@@ -1,13 +1,15 @@
 #ifndef _MEMORY_HH_
 #define _MEMORY_HH_
+
 #if defined(__cplusplus) || defined(c_plusplus)
 #include <new>
 #include <cstdlib>
-#include <assert.h>
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include "../../io/DecoderPlatform.hh"
 #include "../../io/MemMgrAllocator.hh"
+
 extern bool g_use_seccomp;
 
 #define FOREACH_EXIT_CODE(CB)                   \
@@ -64,33 +66,34 @@ void custom_exit(ExitCode::ExitCode_ exit_code);
 #define always_assert(EXPR) always_assert_outer((EXPR), #EXPR, __FILE__, __LINE__)
 void custom_terminate_this_thread(uint8_t exit_code);
 typedef void atexit_type(void*, uint64_t);
-void custom_atexit(atexit_type* atexit, void *arg0, uint64_t arg1);
+void custom_atexit(atexit_type* atexit, void* arg0, uint64_t arg1);
 extern "C" {
 #else
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdint>
 #endif
 #if __cplusplus > 199711L
     [[noreturn]]
 #endif
-void always_assert_exit(bool value, const char * expr, const char * file, int line);
+void always_assert_exit(bool value, const char* expr, const char* file, int line);
 
-inline void always_assert_outer(bool value, const char * expr, const char * file, int line) {
+inline void always_assert_outer(bool value, const char* expr, const char* file, int line) {
     if (__builtin_expect(!value, 0)) {
         always_assert_exit(value, expr, file, line);
     }
 }
 
-void* custom_malloc (size_t size);
-void* custom_realloc (void * old, size_t size);
+void* custom_malloc(std::size_t size);
+void* custom_realloc(void * old, std::size_t size);
 void custom_free(void* ptr);
 
-void * custom_calloc(size_t size);
+void* custom_calloc(std::size_t size);
 void set_close_thread_handle(int handle);
 void reset_close_thread_handle();
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 
 #endif
-#endif
+
+#endif /// _MEMORY_HH_

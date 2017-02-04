@@ -7,5 +7,7 @@ enum {
     MAX_NUM_THREADS = 8,
     SIMD_WIDTH = 1
 };
+
 extern unsigned int NUM_THREADS;
-#endif
+
+#endif /// _OPTIONS_HH_

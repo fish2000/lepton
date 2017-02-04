@@ -1,5 +1,6 @@
 #ifndef _VP8_MODEL_NUMERIC_HH_
 #define _VP8_MODEL_NUMERIC_HH_
+
 //#define DEBUGDECODE
 //for uint16_t
 #include <cstdint>
@@ -15,11 +16,13 @@
 #ifdef _WIN32
 #include <intrin.h>
 #pragma intrinsic(_BitScanReverse)
+
 static uint32_t __inline __builtin_clz(uint32_t x) {
     unsigned long r = 0;
     _BitScanReverse(&r, x);
     return 31 - r;
 }
+
 static uint64_t __inline __builtin_clzl(uint64_t x) {
     uint64_t first_half = x;
     first_half >>= 16;
@@ -34,17 +37,19 @@ static uint64_t __inline __builtin_clzl(uint64_t x) {
 static constexpr uint8_t LogTable16[16] = {
     0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3
 };
-static constexpr char LogTable256[256] = 
-{
+
+static constexpr char LogTable256[256] = {
 #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
     0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
     LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
     LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
 #undef LT
 };
+
 static constexpr uint8_t LenTable16[16] = {
     0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
 };
+
 static constexpr char LenTable256[256] = 
 {
 #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
@@ -75,28 +80,34 @@ inline constexpr uint8_t k16log2(uint16_t v) {
     ? 8 + LogTable256[v >> 8]
     : LogTable256[v];
 }
+
 inline constexpr uint8_t k16bit_length(uint16_t v) {
     return (v & 0xff00)
     ? 8 + LenTable256[v >> 8]
     : LenTable256[v];
 }
+
 inline uint8_t uint16log2(uint16_t v) {
     return 31 - __builtin_clz((uint32_t)v);
 }
+
 inline uint8_t nonzero_bit_length(uint16_t v) {
     assert(v);
     return 32 - __builtin_clz((uint32_t)v);
 }
+
 inline uint8_t uint16bit_length(uint16_t v) {
     return v ? 32 - __builtin_clz((uint32_t)v) : 0;
 }
+
 #endif
 
 constexpr uint8_t log_max_numerator = 18;
 
 inline constexpr uint32_t computeDivisor(uint16_t d) {
-    return (((( 1 << k16bit_length(d)) - d) << log_max_numerator) / d) + 1;
+    return ((((1 << k16bit_length(d)) - d) << log_max_numerator) / d) + 1;
 }
+
 #define COMPUTE_DIVISOR(off) \
    computeDivisor(off) \
    ,computeDivisor(off + 1) \
@@ -168,11 +179,11 @@ COMPUTE_DIVISOR_AND_LOG2(off + 0x00) \
 ,COMPUTE_DIVISOR_AND_LOG2(off + 0x20) \
 ,COMPUTE_DIVISOR_AND_LOG2(off + 0x30)
 
-
 struct DivisorLog2 {
     uint32_t divisor;
     uint8_t len;
 };
+
 static constexpr DivisorLog2 DivisorAndLog2Table[1026] = {
     {0,0}
     ,{computeDivisor(1), k16log2(1)}
@@ -277,19 +288,23 @@ constexpr uint32_t fast_divide18bit_by_10bit(uint32_t num, uint16_t denom) {
          + ((uint32_t)(num - (((uint64_t)DivisorAndLog2Table[denom].divisor * (uint64_t)num) >> log_max_numerator)) >> 1))
           >> DivisorAndLog2Table[denom].len;
 }
+
 constexpr uint32_t fast_divide16bit(uint32_t num, uint16_t denom) {
     return ((uint32_t)((DivisorAndLog2Table[denom].divisor * (uint32_t)num) >> log_max_numerator)
             + ((uint32_t)(num - (((uint32_t)DivisorAndLog2Table[denom].divisor * (uint32_t)num) >> log_max_numerator)) >> 1))
     >> DivisorAndLog2Table[denom].len;
 }
-template <uint16_t denom> constexpr uint32_t templ_divide16bit(uint32_t num) {
+
+template <uint16_t denom>
+constexpr uint32_t templ_divide16bit(uint32_t num) {
     static_assert(denom < 1024, "Only works for denominators < 1024");
     return ((uint32_t)((DivisorAndLog2Table[denom].divisor * (uint32_t)num) >> log_max_numerator)
             + ((uint32_t)(num - (((uint32_t)DivisorAndLog2Table[denom].divisor * (uint32_t)num) >> log_max_numerator)) >> 1))
     >> DivisorAndLog2Table[denom].len;
 }
 
-template <uint16_t denom> __m128i divide16bit_vec_signed(__m128i num) {
+template <uint16_t denom>
+__m128i divide16bit_vec_signed(__m128i num) {
     static_assert(denom < 1024, "Only works for denominators < 1024");
     __m128i m = _mm_set1_epi32(DivisorAndLog2Table[denom].divisor);
     __m128i abs_num = _mm_abs_epi32(num);
@@ -299,7 +314,9 @@ template <uint16_t denom> __m128i divide16bit_vec_signed(__m128i num) {
     __m128i retval = _mm_srli_epi32(t_plus_shr, DivisorAndLog2Table[denom].len);
     return _mm_sign_epi32(retval, num);
 }
-template <uint16_t denom> __m128i divide16bit_vec(__m128i num) {
+
+template <uint16_t denom>
+__m128i divide16bit_vec(__m128i num) {
     static_assert(denom < 1024, "Only works for denominators < 1024");
     __m128i m = _mm_set1_epi32(DivisorAndLog2Table[denom].divisor);
     __m128i t = _mm_srli_epi32(_mm_mullo_epi32(m, num), log_max_numerator);
@@ -307,7 +324,6 @@ template <uint16_t denom> __m128i divide16bit_vec(__m128i num) {
     __m128i t_plus_shr = _mm_add_epi32(t, _mm_srli_epi32(n_minus_t, 1));
     return _mm_srli_epi32(t_plus_shr, DivisorAndLog2Table[denom].len);
 }
-
 
 inline uint32_t slow_divide18bit_by_10bit(uint32_t num, uint16_t denom) {
 #if 0
@@ -333,32 +349,39 @@ enum NumericConstants : uint8_t {
     NUMERIC_LENGTH_MAX = 12,
     NUMERIC_LENGTH_BITS = 4,
 };
-template<typename intt> intt local_log2(intt v) {
+
+template <typename intt>
+intt local_log2(intt v) {
     constexpr int loop_max = (int)(sizeof(intt) == 1 ? 2
                                    : (sizeof(intt) == 2 ? 3
                                       : (sizeof(intt) == 4 ? 4
                                          : 5)));
-    constexpr intt b[] = {0x2,
+    constexpr intt b[] = {
+		0x2,
         0xC,
         0xF0,
         (intt)0xFF00,
         (intt)0xFFFF0000U,
-        (intt)0xFFFFFFFF00000000ULL};
-    constexpr intt S[] = {1, 2, 4, 8, 16, 32};
+        (intt)0xFFFFFFFF00000000ULL
+	};
+	
+    constexpr intt S[] = { 1, 2, 4, 8, 16, 32 };
+	
     intt r = 0; // result of log2(v) will go here
-    for (signed int i = loop_max; i >= 0; i--) // unroll for speed...
-    {
-        if (v & b[i])
-        {
+    
+	for (signed int i = loop_max; i >= 0; i--) {
+		// unroll for speed...
+        if (v & b[i]) {
             v >>= S[i];
             r |= S[i];
         }
     }
+	
     return r;
 }
 
-
-template <typename intt> intt bit_length(intt v) {
+template <typename intt>
+intt bit_length(intt v) {
     if (sizeof(intt) <= 4) {
         return v ? 32 - __builtin_clz((uint32_t)v) : 0;
     } else {
@@ -367,4 +390,4 @@ template <typename intt> intt bit_length(intt v) {
     return v == 0 ? 0 : local_log2(v) + 1;
 }
 
-#endif
+#endif /// _VP8_MODEL_NUMERIC_HH_

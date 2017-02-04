@@ -39,8 +39,8 @@ enum class Billing {
 };
 #undef BILLING_ENUM_CB
 #define BILLING_STRING_CB(Name) #Name,
-inline const char * BillingString(Billing bt) {
-    static const char *const string_data[] = {
+inline const char* BillingString(Billing bt) {
+    static const char* const string_data[] = {
         FOREACH_BILLING_TYPE(BILLING_STRING_CB)
         "UNREACHABLE"
     };
@@ -55,6 +55,7 @@ inline const char * BillingString(Billing bt) {
     data[3] = (which % 10) + '0';
     return data;
 }
+
 extern Sirikata::Array1d<typename Sirikata::Array1d<std::atomic<uint32_t>,
                                                     (uint32_t)Billing::NUM_BILLING_ELEMENTS>, 2> billing_map;
 
@@ -69,8 +70,6 @@ inline void write_bit_bill(Billing bt, bool is_compressed, uint32_t num_bits) {
     }
 #endif
 }
-
-
 
 inline void write_multi_bit_bill(uint32_t num_bits, bool is_compressed, Billing start_range, Billing end_range) {
 #ifndef NDEBUG

@@ -50,4 +50,5 @@
 #include <endian.h>
 #endif
 #endif
-#endif
+
+#endif /// VPX_CONFIG_H_

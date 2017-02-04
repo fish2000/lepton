@@ -349,277 +349,283 @@ const int32_t jpeg_aritab[256] = {
 };
 
 namespace Sirikata {
-static void emit_byte(int byte_data, DecoderWriter *cinfo) {
-    unsigned char data[1] = {(uint8_t)byte_data};
-    cinfo->Write(data, 1);
-}
-static int get_byte(DecoderReader *cinfo) {
-    static int num_bad = 0;
-    unsigned char data[1] = {0};
-    std::pair<int, JpegError> x = cinfo->Read(data, 1);
-    if (x.first == 0 || x.second != JpegError::nil()) {
-        if (num_bad++%2 ==0) {
-            return 0xff;
-        }
-        return 0xd9;
-    }
-    return data[0];
-}
-/*
- * The core arithmetic encoding routine (common in JPEG and JBIG).
- * This needs to go as fast as possible.
- * Machine-dependent optimization facilities
- * are not utilized in this portable implementation.
- * However, this code should be fairly efficient and
- * may be a good base for further optimizations anyway.
- *
- * Parameter 'val' to be encoded may be 0 or 1 (binary decision).
- *
- * Note: I've added full "Pacman" termination support to the
- * byte output routines, which is equivalent to the optional
- * Discard_final_zeros procedure (Figure D.15) in the spec.
- * Thus, we always produce the shortest possible output
- * stream compliant to the spec (no trailing zero bytes,
- * except for FF stuffing).
- *
- * I've also introduced a new scheme for accessing
- * the probability estimation state machine table,
- * derived from Markus Kuhn's JBIG implementation.
- */
+	
+	static void emit_byte(int byte_data, DecoderWriter* cinfo) {
+	    unsigned char data[1] = {(uint8_t)byte_data};
+	    cinfo->Write(data, 1);
+	}
+	
+	static int get_byte(DecoderReader* cinfo) {
+	    static int num_bad = 0;
+	    unsigned char data[1] = {0};
+	    std::pair<int, JpegError> x = cinfo->Read(data, 1);
+	    if (x.first == 0 || x.second != JpegError::nil()) {
+	        if (num_bad++%2 ==0) {
+	            return 0xff;
+	        }
+	        return 0xd9;
+	    }
+	    return data[0];
+	}
+	/*
+	 * The core arithmetic encoding routine (common in JPEG and JBIG).
+	 * This needs to go as fast as possible.
+	 * Machine-dependent optimization facilities
+	 * are not utilized in this portable implementation.
+	 * However, this code should be fairly efficient and
+	 * may be a good base for further optimizations anyway.
+	 *
+	 * Parameter 'val' to be encoded may be 0 or 1 (binary decision).
+	 *
+	 * Note: I've added full "Pacman" termination support to the
+	 * byte output routines, which is equivalent to the optional
+	 * Discard_final_zeros procedure (Figure D.15) in the spec.
+	 * Thus, we always produce the shortest possible output
+	 * stream compliant to the spec (no trailing zero bytes,
+	 * except for FF stuffing).
+	 *
+	 * I've also introduced a new scheme for accessing
+	 * the probability estimation state machine table,
+	 * derived from Markus Kuhn's JBIG implementation.
+	 */
 
-void ArithmeticCoder::arith_encode(DecoderWriter *cinfo, unsigned char *st, bool val) {
+	void ArithmeticCoder::arith_encode(DecoderWriter* cinfo, unsigned char* st, bool val) {
 
-  ArithmeticCoder *e = this;
-  unsigned char nl, nm;
-  int32_t qe, temp;
-  int sv;
+	  ArithmeticCoder* e = this;
+	  unsigned char nl, nm;
+	  int32_t qe, temp;
+	  int sv;
 
-  /* Fetch values from our compact representation of Table D.2:
-   * Qe values and probability estimation state machine
-   */
-  sv = *st;
-  qe = jpeg_aritab[sv & 0x7F];  /* => Qe_Value */
-  assert( qe != 0);
-  nl = qe & 0xFF; qe >>= 8;     /* Next_Index_LPS + Switch_MPS */
-  nm = qe & 0xFF; qe >>= 8;     /* Next_Index_MPS */
+	  /* Fetch values from our compact representation of Table D.2:
+	   * Qe values and probability estimation state machine
+	   */
+	  sv = *st;
+	  qe = jpeg_aritab[sv & 0x7F];  /* => Qe_Value */
+	  assert(qe != 0);
+	  nl = qe & 0xFF; qe >>= 8;     /* Next_Index_LPS + Switch_MPS */
+	  nm = qe & 0xFF; qe >>= 8;     /* Next_Index_MPS */
 
-  /* Encode & estimation procedures per sections D.1.4 & D.1.5 */
-  e->a -= qe;
-  assert(e->a > 0);
-  if ((int)val != (sv >> 7)) {
-    /* Encode the less probable symbol */
-    if (e->a >= qe) {
-      /* If the interval size (qe) for the less probable symbol (LPS)
-       * is larger than the interval size for the MPS, then exchange
-       * the two symbols for coding efficiency, otherwise code the LPS
-       * as usual: */
-      e->c += e->a;
-      e->a = qe;
-      assert(e->a > 0);
-    }
-    *st = (sv & 0x80) ^ nl;     /* Estimate_after_LPS */
-  } else {
-    /* Encode the more probable symbol */
-    if (e->a >= 0x8000L)
-      return;  /* A >= 0x8000 -> ready, no renormalization required */
-    if (e->a < qe) {
-      /* If the interval size (qe) for the less probable symbol (LPS)
-       * is larger than the interval size for the MPS, then exchange
-       * the two symbols for coding efficiency: */
-      e->c += e->a;
-      e->a = qe;
-    }
-    *st = (sv & 0x80) ^ nm;     /* Estimate_after_MPS */
-  }
-  assert(e->a > 0);
-  /* Renormalization & data output per section D.1.6 */
-  do {
-    e->a <<= 1;
-    e->c <<= 1;
-    if (--e->ct == 0) {
-      /* Another byte is ready for output */
-      temp = e->c >> 19;
-      if (temp > 0xFF) {
-        /* Handle overflow over all stacked 0xFF bytes */
-        if (e->buffer >= 0) {
-          if (e->zc)
-            do emit_byte(0x00, cinfo);
-            while (--e->zc);
-          emit_byte(e->buffer + 1, cinfo);
-          if (e->buffer + 1 == 0xFF)
-            emit_byte(0x00, cinfo);
-        }
-        e->zc += e->sc;  /* carry-over converts stacked 0xFF bytes to 0x00 */
-        e->sc = 0;
-        /* Note: The 3 spacer bits in the C register guarantee
-         * that the new buffer byte can't be 0xFF here
-         * (see page 160 in the P&M JPEG book). */
-        e->buffer = temp & 0xFF;  /* new output byte, might overflow later */
-      } else if (temp == 0xFF) {
-        ++e->sc;  /* stack 0xFF byte (which might overflow later) */
-      } else {
-        /* Output all stacked 0xFF bytes, they will not overflow any more */
-        if (e->buffer == 0)
-          ++e->zc;
-        else if (e->buffer >= 0) {
-          if (e->zc)
-            do emit_byte(0x00, cinfo);
-            while (--e->zc);
-          emit_byte(e->buffer, cinfo);
-        }
-        if (e->sc) {
-          if (e->zc)
-            do emit_byte(0x00, cinfo);
-            while (--e->zc);
-          do {
-            emit_byte(0xFF, cinfo);
-            emit_byte(0x00, cinfo);
-          } while (--e->sc);
-        }
-        e->buffer = temp & 0xFF;  /* new output byte (can still overflow) */
-      }
-      e->c &= 0x7FFFFL;
-      e->ct += 8;
-    }
-  } while (e->a < 0x8000L);
-}
+	  /* Encode & estimation procedures per sections D.1.4 & D.1.5 */
+	  e->a -= qe;
+	  assert(e->a > 0);
+  
+	  if ((int)val != (sv >> 7)) {
+	    /* Encode the less probable symbol */
+	    if (e->a >= qe) {
+	      /* If the interval size (qe) for the less probable symbol (LPS)
+	       * is larger than the interval size for the MPS, then exchange
+	       * the two symbols for coding efficiency, otherwise code the LPS
+	       * as usual: */
+	      e->c += e->a;
+	      e->a = qe;
+	      assert(e->a > 0);
+	    }
+	    *st = (sv & 0x80) ^ nl;     /* Estimate_after_LPS */
+	  } else {
+	    /* Encode the more probable symbol */
+	    if (e->a >= 0x8000L)
+	      return;  /* A >= 0x8000 -> ready, no renormalization required */
+	    if (e->a < qe) {
+	      /* If the interval size (qe) for the less probable symbol (LPS)
+	       * is larger than the interval size for the MPS, then exchange
+	       * the two symbols for coding efficiency: */
+	      e->c += e->a;
+	      e->a = qe;
+	    }
+	    *st = (sv & 0x80) ^ nm;     /* Estimate_after_MPS */
+	  }
+	  assert(e->a > 0);
+  
+	  /* Renormalization & data output per section D.1.6 */
+	  do {
+	    e->a <<= 1;
+	    e->c <<= 1;
+	    if (--e->ct == 0) {
+	      /* Another byte is ready for output */
+	      temp = e->c >> 19;
+	      if (temp > 0xFF) {
+	        /* Handle overflow over all stacked 0xFF bytes */
+	        if (e->buffer >= 0) {
+	          if (e->zc)
+	            do emit_byte(0x00, cinfo);
+	            while (--e->zc);
+	          emit_byte(e->buffer + 1, cinfo);
+	          if (e->buffer + 1 == 0xFF)
+	            emit_byte(0x00, cinfo);
+	        }
+	        e->zc += e->sc;  /* carry-over converts stacked 0xFF bytes to 0x00 */
+	        e->sc = 0;
+	        /* Note: The 3 spacer bits in the C register guarantee
+	         * that the new buffer byte can't be 0xFF here
+	         * (see page 160 in the P&M JPEG book). */
+	        e->buffer = temp & 0xFF;  /* new output byte, might overflow later */
+	      } else if (temp == 0xFF) {
+	        ++e->sc;  /* stack 0xFF byte (which might overflow later) */
+	      } else {
+	        /* Output all stacked 0xFF bytes, they will not overflow any more */
+	        if (e->buffer == 0)
+	          ++e->zc;
+	        else if (e->buffer >= 0) {
+	          if (e->zc)
+	            do emit_byte(0x00, cinfo);
+	            while (--e->zc);
+	          emit_byte(e->buffer, cinfo);
+	        }
+	        if (e->sc) {
+	          if (e->zc)
+	            do emit_byte(0x00, cinfo);
+	            while (--e->zc);
+	          do {
+	            emit_byte(0xFF, cinfo);
+	            emit_byte(0x00, cinfo);
+	          } while (--e->sc);
+	        }
+	        e->buffer = temp & 0xFF;  /* new output byte (can still overflow) */
+	      }
+	      e->c &= 0x7FFFFL;
+	      e->ct += 8;
+	    }
+	  } while (e->a < 0x8000L);
+	}
 
-void ArithmeticCoder::finish_encode(DecoderWriter *cinfo) {
-  ArithmeticCoder * e = this;
-  int32_t temp;
+	void ArithmeticCoder::finish_encode(DecoderWriter* cinfo) {
+	  ArithmeticCoder* e = this;
+	  int32_t temp;
 
-  /* Section D.1.8: Termination of encoding */
+	  /* Section D.1.8: Termination of encoding */
 
-  /* Find the e->c in the coding interval with the largest
-   * number of trailing zero bits */
-  if ((temp = (e->a - 1 + e->c) & 0xFFFF0000L) < e->c)
-    e->c = temp + 0x8000L;
-  else
-    e->c = temp;
-  /* Send remaining bytes to output */
-  e->c <<= e->ct;
-  if (e->c & 0xF8000000L) {
-    /* One final overflow has to be handled */
-    if (e->buffer >= 0) {
-      if (e->zc)
-        do emit_byte(0x00, cinfo);
-        while (--e->zc);
-      emit_byte(e->buffer + 1, cinfo);
-      if (e->buffer + 1 == 0xFF)
-        emit_byte(0x00, cinfo);
-    }
-    e->zc += e->sc;  /* carry-over converts stacked 0xFF bytes to 0x00 */
-    e->sc = 0;
-  } else {
-    if (e->buffer == 0)
-      ++e->zc;
-    else if (e->buffer >= 0) {
-      if (e->zc)
-        do emit_byte(0x00, cinfo);
-        while (--e->zc);
-      emit_byte(e->buffer, cinfo);
-    }
-    if (e->sc) {
-      if (e->zc)
-        do emit_byte(0x00, cinfo);
-        while (--e->zc);
-      do {
-        emit_byte(0xFF, cinfo);
-        emit_byte(0x00, cinfo);
-      } while (--e->sc);
-    }
-  }
-  /* Output final bytes only if they are not 0x00 */
-  if (e->c & 0x7FFF800L) {
-    if (e->zc)  /* output final pending zero bytes */
-      do emit_byte(0x00, cinfo);
-      while (--e->zc);
-    emit_byte((e->c >> 19) & 0xFF, cinfo);
-    if (((e->c >> 19) & 0xFF) == 0xFF)
-      emit_byte(0x00, cinfo);
-    if (e->c & 0x7F800L) {
-      emit_byte((e->c >> 11) & 0xFF, cinfo);
-      if (((e->c >> 11) & 0xFF) == 0xFF)
-        emit_byte(0x00, cinfo);
-    }
-  }
-}
-bool ArithmeticCoder::arith_decode(DecoderReader *cinfo, unsigned char *st) {
-  ArithmeticCoder *e = this;
-  unsigned char nl, nm;
-  int32_t qe, temp;
-  int sv, data;
+	  /* Find the e->c in the coding interval with the largest
+	   * number of trailing zero bits */
+	  if ((temp = (e->a - 1 + e->c) & 0xFFFF0000L) < e->c)
+	    e->c = temp + 0x8000L;
+	  else
+	    e->c = temp;
+	  /* Send remaining bytes to output */
+	  e->c <<= e->ct;
+	  if (e->c & 0xF8000000L) {
+	    /* One final overflow has to be handled */
+	    if (e->buffer >= 0) {
+	      if (e->zc)
+	        do emit_byte(0x00, cinfo);
+	        while (--e->zc);
+	      emit_byte(e->buffer + 1, cinfo);
+	      if (e->buffer + 1 == 0xFF)
+	        emit_byte(0x00, cinfo);
+	    }
+	    e->zc += e->sc;  /* carry-over converts stacked 0xFF bytes to 0x00 */
+	    e->sc = 0;
+	  } else {
+	    if (e->buffer == 0)
+	      ++e->zc;
+	    else if (e->buffer >= 0) {
+	      if (e->zc)
+	        do emit_byte(0x00, cinfo);
+	        while (--e->zc);
+	      emit_byte(e->buffer, cinfo);
+	    }
+	    if (e->sc) {
+	      if (e->zc)
+	        do emit_byte(0x00, cinfo);
+	        while (--e->zc);
+	      do {
+	        emit_byte(0xFF, cinfo);
+	        emit_byte(0x00, cinfo);
+	      } while (--e->sc);
+	    }
+	  }
+	  /* Output final bytes only if they are not 0x00 */
+	  if (e->c & 0x7FFF800L) {
+	    if (e->zc)  /* output final pending zero bytes */
+	      do emit_byte(0x00, cinfo);
+	      while (--e->zc);
+	    emit_byte((e->c >> 19) & 0xFF, cinfo);
+	    if (((e->c >> 19) & 0xFF) == 0xFF)
+	      emit_byte(0x00, cinfo);
+	    if (e->c & 0x7F800L) {
+	      emit_byte((e->c >> 11) & 0xFF, cinfo);
+	      if (((e->c >> 11) & 0xFF) == 0xFF)
+	        emit_byte(0x00, cinfo);
+	    }
+	  }
+	}
 
-  /* Renormalization & data input per section D.2.6 */
-  while (e->a < 0x8000L) {
-    if (--e->ct < 0) {
-      /* Need to fetch next data byte */
-      if (e->unread_marker)
-        data = 0;               /* stuff zero data */
-      else {
-        data = get_byte(cinfo); /* read next input byte */
-        if (data == 0xFF) {     /* zero stuff or marker code */
-          do data = get_byte(cinfo);
-          while (data == 0xFF); /* swallow extra 0xFF bytes */
-          if (data == 0)
-            data = 0xFF;        /* discard stuffed zero byte */
-          else {
-            /* Note: Different from the Huffman decoder, hitting
-             * a marker while processing the compressed data
-             * segment is legal in arithmetic coding.
-             * The convention is to supply zero data
-             * then until decoding is complete.
-             */
-            e->unread_marker = data;
-            data = 0;
-          }
-        }
-      }
-      e->c = (e->c << 8) | data; /* insert data into C register */
-      if ((e->ct += 8) < 0)      /* update bit shift counter */
-        /* Need more initial bytes */
-        if (++e->ct == 0)
-          /* Got 2 initial bytes -> re-init A and exit loop */
-          e->a = 0x8000L; /* => e->a = 0x10000L after loop exit */
-    }
-    e->a <<= 1;
-  }
+	bool ArithmeticCoder::arith_decode(DecoderReader* cinfo, unsigned char* st) {
+	  ArithmeticCoder *e = this;
+	  unsigned char nl, nm;
+	  int32_t qe, temp;
+	  int sv, data;
 
-  /* Fetch values from our compact representation of Table D.2:
-   * Qe values and probability estimation state machine
-   */
-  sv = *st;
-  qe = jpeg_aritab[sv & 0x7F];  /* => Qe_Value */
-  nl = qe & 0xFF; qe >>= 8;     /* Next_Index_LPS + Switch_MPS */
-  nm = qe & 0xFF; qe >>= 8;     /* Next_Index_MPS */
+	  /* Renormalization & data input per section D.2.6 */
+	  while (e->a < 0x8000L) {
+	    if (--e->ct < 0) {
+	      /* Need to fetch next data byte */
+	      if (e->unread_marker)
+	        data = 0;               /* stuff zero data */
+	      else {
+	        data = get_byte(cinfo); /* read next input byte */
+	        if (data == 0xFF) {     /* zero stuff or marker code */
+	          do data = get_byte(cinfo);
+	          while (data == 0xFF); /* swallow extra 0xFF bytes */
+	          if (data == 0)
+	            data = 0xFF;        /* discard stuffed zero byte */
+	          else {
+	            /* Note: Different from the Huffman decoder, hitting
+	             * a marker while processing the compressed data
+	             * segment is legal in arithmetic coding.
+	             * The convention is to supply zero data
+	             * then until decoding is complete.
+	             */
+	            e->unread_marker = data;
+	            data = 0;
+	          }
+	        }
+	      }
+	      e->c = (e->c << 8) | data; /* insert data into C register */
+	      if ((e->ct += 8) < 0)      /* update bit shift counter */
+	        /* Need more initial bytes */
+	        if (++e->ct == 0)
+	          /* Got 2 initial bytes -> re-init A and exit loop */
+	          e->a = 0x8000L; /* => e->a = 0x10000L after loop exit */
+	    }
+	    e->a <<= 1;
+	  }
 
-  /* Decode & estimation procedures per sections D.2.4 & D.2.5 */
-  temp = e->a - qe;
-  e->a = temp;
-  temp <<= e->ct;
-  if (e->c >= temp) {
-    e->c -= temp;
-    /* Conditional LPS (less probable symbol) exchange */
-    if (e->a < qe) {
-      e->a = qe;
-      *st = (sv & 0x80) ^ nm;   /* Estimate_after_MPS */
-    } else {
-      e->a = qe;
-      *st = (sv & 0x80) ^ nl;   /* Estimate_after_LPS */
-      sv ^= 0x80;               /* Exchange LPS/MPS */
-    }
-  } else if (e->a < 0x8000L) {
-    /* Conditional MPS (more probable symbol) exchange */
-    if (e->a < qe) {
-      *st = (sv & 0x80) ^ nl;   /* Estimate_after_LPS */
-      sv ^= 0x80;               /* Exchange LPS/MPS */
-    } else {
-      *st = (sv & 0x80) ^ nm;   /* Estimate_after_MPS */
-    }
-  }
+	  /* Fetch values from our compact representation of Table D.2:
+	   * Qe values and probability estimation state machine
+	   */
+	  sv = *st;
+	  qe = jpeg_aritab[sv & 0x7F];  /* => Qe_Value */
+	  nl = qe & 0xFF; qe >>= 8;     /* Next_Index_LPS + Switch_MPS */
+	  nm = qe & 0xFF; qe >>= 8;     /* Next_Index_MPS */
 
-  return sv >> 7;
+	  /* Decode & estimation procedures per sections D.2.4 & D.2.5 */
+	  temp = e->a - qe;
+	  e->a = temp;
+	  temp <<= e->ct;
+	  if (e->c >= temp) {
+	    e->c -= temp;
+	    /* Conditional LPS (less probable symbol) exchange */
+	    if (e->a < qe) {
+	      e->a = qe;
+	      *st = (sv & 0x80) ^ nm;   /* Estimate_after_MPS */
+	    } else {
+	      e->a = qe;
+	      *st = (sv & 0x80) ^ nl;   /* Estimate_after_LPS */
+	      sv ^= 0x80;               /* Exchange LPS/MPS */
+	    }
+	  } else if (e->a < 0x8000L) {
+	    /* Conditional MPS (more probable symbol) exchange */
+	    if (e->a < qe) {
+	      *st = (sv & 0x80) ^ nl;   /* Estimate_after_LPS */
+	      sv ^= 0x80;               /* Exchange LPS/MPS */
+	    } else {
+	      *st = (sv & 0x80) ^ nm;   /* Estimate_after_MPS */
+	    }
+	  }
 
-}
-}
+	  return sv >> 7;
+
+	}
+
+} /// namespace Sirikata
 

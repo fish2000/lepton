@@ -214,7 +214,8 @@ void serving_loop(int unix_domain_socket_server,
 	
     while (true) {
         write_num_children(children.size());
-        for (pid_t term_pid = 0; (term_pid = waitpid(-1, &status, should_wait_bitmask(children.size(), max_children))) > 0;) {
+		
+        for (pid_t term_pid = 0; (term_pid = ::waitpid(-1, &status, should_wait_bitmask(children.size(), max_children))) > 0;) {
             std::set<pid_t>::iterator where = children.find(term_pid);
             if (where != children.end()) {
                 children.erase(where);
@@ -232,14 +233,12 @@ void serving_loop(int unix_domain_socket_server,
             std::fflush(stderr);
             write_num_children(children.size());
         }
-        int ret = poll(fds, num_fds, sigchild_fd == -1 ? 60 : -1);
+		
+        int ret = ::poll(fds, num_fds, sigchild_fd == -1 ? 60 : -1);
+		
         // need a timeout (30 ms) in case a SIGCHLD was missed between the waitpid and the poll
-        if (ret == 0) { // no events ready, just timed out, check for missed SIGCHLD
-            continue;
-        }
-        if (ret < 0 && errno == EINTR) {
-            continue;
-        }
+        if (ret == 0) { continue; } // no events ready, just timed out, check for missed SIGCHLD
+        if (ret < 0 && errno == EINTR) { continue; }
         for (int i = 0; i < num_fds; ++i) {
             if (fds[i].revents & POLLIN) {
                 fds[i].revents = 0;
@@ -259,7 +258,7 @@ void serving_loop(int unix_domain_socket_server,
                     if (flags & O_NONBLOCK) {
                         flags &= ~O_NONBLOCK;
                         // inheritance of nonblocking flag not specified across systems
-                        fcntl(active_connection, F_SETFL, flags);
+                        ::fcntl(active_connection, F_SETFL, flags);
                     }
                     children.insert(accept_new_connection(active_connection,
                                                           work,
@@ -288,10 +287,9 @@ int setup_tcp_socket(int port, int listen_backlog) {
     serv_addr.sin_port = htons(port);
 
     int optval = 1;
-    setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    ::setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-    if (::bind(socket_fd, (struct sockaddr *) &serv_addr,
-             sizeof(serv_addr)) < 0) {
+    if (::bind(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         custom_exit(ExitCode::COULD_NOT_BIND_PORT);
     }
     int err = ::listen(socket_fd, listen_backlog);

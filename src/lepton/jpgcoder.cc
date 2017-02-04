@@ -1673,7 +1673,7 @@ void process_file(IOUtil::FileReader* reader,
     if (!g_use_seccomp) { end = std::clock(); }
 	
     {
-        size_t bound = decompression_memory_bound();
+        std::size_t bound = decompression_memory_bound();
         char bound_out[] = "XXXXXXXXXX bytes needed to decompress this file\n";
         bound_out[0] = '0' + (bound / 1000000000) % 10;
         bound_out[1] = '0' + (bound / 100000000) % 10;
@@ -2187,6 +2187,7 @@ bool read_jpeg(std::vector<std::pair<uint32_t, uint32_t>>* huff_input_offsets, i
 	
     grbgdata = grbgw->getptr_aligned();
     grbs     = grbgw->getpos();
+	
     delete grbgw;
 	
     if (grbs == sizeof(EOI) && 0 == std::memcmp(grbgdata, EOI, sizeof(EOI))) {
@@ -2240,7 +2241,7 @@ unsigned char hex_pair_to_byte(char big, char little) {
     return hex_to_nibble(big) * 16 + hex_to_nibble(little);
 }
 
-bool hex_to_bin(unsigned char *output, const char* input, std::size_t output_size) {
+bool hex_to_bin(unsigned char* output, const char* input, std::size_t output_size) {
     std::size_t i = 0;
     for (; i < output_size && input[i * 2] && input[i * 2 + 1]; ++i) {
         output[i] = hex_pair_to_byte(input[i * 2], input[i * 2 + 1]);
@@ -2549,8 +2550,7 @@ MergeJpegStreamingStatus merge_jpeg_streaming(MergeJpegProgress* stored_progress
     ----------------------------------------------- */
 
 bool decode_jpeg(std::vector<std::pair<uint32_t, uint32_t>> const& huff_input_offsets,
-                 std::vector<ThreadHandoff>* luma_row_offset_return)
-{
+                 std::vector<ThreadHandoff>* luma_row_offset_return) {
     abitreader* huffr; // bitwise reader for image data
 
     unsigned char  type = 0x00; // type of current marker segment

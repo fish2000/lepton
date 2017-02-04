@@ -26,7 +26,7 @@
 
 unsigned int NUM_THREADS = MAX_NUM_THREADS;
 
-const char *ExitString(ExitCode ec) {
+const char* ExitString(ExitCode ec) {
 	FOREACH_EXIT_CODE(GENERATE_EXIT_CODE_RETURN)
 	static char data[] = "XXXX_EXIT_CODE_BEYOND_EXIT_CODE_ARRAY";
 	data[0] = ((int)ec / 1000) + '0';
@@ -79,15 +79,15 @@ extern "C" {
 	#endif
 	}
 
-	void* custom_realloc (void* old, std::size_t size) {
+	void* custom_realloc(void* old, std::size_t size) {
 	#ifdef USE_STANDARD_MEMORY_ALLOCATORS
 	#ifdef _WIN32
 	    return _aligned_realloc(old, size, 32);
 	#else
-	    void* unaligned_retval = realloc(old, size);
+	    void* unaligned_retval = std::realloc(old, size);
 	    void* retval = custom_malloc(size);
-	    memcpy(retval, unaligned_retval, size);
-	    free(unaligned_retval);
+	    std::memcpy(retval, unaligned_retval, size);
+	    std::free(unaligned_retval);
 	    return retval;
 	#endif
 	#else
@@ -130,7 +130,7 @@ extern "C" {
 	#ifdef _WIN32
 	    return _aligned_recalloc(bzero32(_aligned_malloc(32, 32)), 1, size, 32);
 	#else
-	    return memset(custom_malloc(size), 0, size);
+	    return std::memset(custom_malloc(size), 0, size);
 	#endif
 	#else
 	    void* retval = Sirikata::memmgr_alloc(size); // guaranteed to return 0'd memory
@@ -165,7 +165,7 @@ void* operator new (std::size_t size) throw(std::bad_alloc) {
 	return ptr;
 }
 
-void* operator new[] (std::size_t size) throw(std::bad_alloc){
+void* operator new[] (std::size_t size) throw(std::bad_alloc) {
 	void* ptr = custom_malloc(size);
 	if (ptr == 0) { // did malloc succeed?
 		if (!g_use_seccomp) {
@@ -189,7 +189,7 @@ THREAD_LOCAL_STORAGE void (*atexit_f)(void*, uint64_t) = nullptr;
 THREAD_LOCAL_STORAGE void *atexit_arg0 = nullptr;
 THREAD_LOCAL_STORAGE uint64_t atexit_arg1 = 0;
 
-void custom_atexit(void (*atexit)(void*, uint64_t) , void *arg0, uint64_t arg1) {
+void custom_atexit(void (*atexit)(void*, uint64_t), void *arg0, uint64_t arg1) {
     assert(!atexit_f);
     atexit_f = atexit;
     atexit_arg0 = arg0;
