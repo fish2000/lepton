@@ -3,7 +3,11 @@ project(lepton)
 
 FIND_PACKAGE(Git)
 
-option(USE_SYSTEM_DEPENDENCIES "Use system dependencies for libz and openssl" OFF)
+option(USE_SYSTEM_DEPENDENCIES 			"Use system dependencies for libz and openssl" OFF)
+option(BEST_RATIO_SLOW_DECOMPRESSION 	"Turn on single threaded decode in exchange for more compression ratio " OFF)
+option(BASELINE_JPEG_ONLY 				"Only support small < 4MB baseline jpegs, instead of progressive and large JPEGS." OFF)
+option(UNSAFE_SKIP_VALIDATION 			"Don't check roundtrip: can cause data corruption unless you have a following validation step" OFF)
+option(ASAN 							"ASAN" OFF)
 
 set(flags_configs "")
 
@@ -201,25 +205,17 @@ ELSE()
 	set(ARCH_AVX2_FLAGS "-march=core-avx2")
 ENDIF()
 
-option(BEST_RATIO_SLOW_DECOMPRESSION "Turn on single threaded decode in exchange for more compression ratio " OFF)
-
 IF(BEST_RATIO_SLOW_DECOMPRESSION)
 	SET(ADDITIONAL_DEFINES "${ADDITIONAL_DEFINES} -DDEFAULT_SINGLE_THREAD")
 ENDIF()
-
-option(BASELINE_JPEG_ONLY "Only support small < 4MB baseline jpegs, instead of progressive and large JPEGS." OFF)
 
 IF(NOT BASELINE_JPEG_ONLY)
 	SET(ADDITIONAL_DEFINES "${ADDITIONAL_DEFINES} -DDEFAULT_ALLOW_PROGRESSIVE -DHIGH_MEMORY")
 ENDIF()
 
-option(UNSAFE_SKIP_VALIDATION "Don't check roundtrip: can cause data corruption unless you have a following validation step" OFF)
-
 IF(UNSAFE_SKIP_VALIDATION)
 	SET(ADDITIONAL_DEFINES "${ADDITIONAL_DEFINES} -DSKIP_VALIDATION")
 ENDIF()
-
-option(ASAN "ASAN" OFF)
 
 IF(ASAN)
 	SET(ADDITIONAL_COMPILE_FLAGS "-fsanitize=address,undefined ${ADDITIONAL_COMPILE_FLAGS}")
@@ -298,12 +294,12 @@ FILE(WRITE ${CMAKE_BINARY_DIR}/version.hh.in
 	"\#define GIT_REVISION \"@VERSION@\"\n")
 
 FILE(WRITE ${CMAKE_BINARY_DIR}/version.cmake
-"EXECUTE_PROCESS(
+"
+EXECUTE_PROCESS(
      COMMAND ${GIT_EXECUTABLE} --git-dir=${PROJECT_SOURCE_DIR}/.git --work-tree=${PROJECT_SOURCE_DIR} rev-parse HEAD
      OUTPUT_VARIABLE VERSION
-     OUTPUT_STRIP_TRAILING_WHITESPACE
- )
- CONFIGURE_FILE(\${SRC} \${DST} @ONLY)
+     OUTPUT_STRIP_TRAILING_WHITESPACE)
+CONFIGURE_FILE(\${SRC} \${DST} @ONLY)
 ")
 
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
